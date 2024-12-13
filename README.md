@@ -10,6 +10,10 @@
 
 # Initialization
 
+# Execution 
+
+## Evaluation
+
 * Two evaluation scripts to evaluate the performance of your model in **validation set**.
 
     1. ```Gemini evaluation```: this file is identical to the one we used in Codalab
@@ -41,13 +45,6 @@ Total score: x.xx
 * Since the total number of validation set is over the limit of free Gemini API, we suggest testing with only a small subset of the validation set when using Gemini API evaluation.
 * The results from LLaMA-3 may differ from Gemini's evaluation. Please use LLaMA-3's results **only as a reference**.
 * The supplementary materials of using Gemini API and huggingface tokens can be found in [slides](https://docs.google.com/presentation/d/1eeXx_dL0OgkDn9_lhXnimTHrE6OYvAiiVOBwo2CTVOQ/edit#slide=id.g31b10de1f8f_7_155).
-
-# Execution 
-
-## Evaluation
-
-* 
-
 
 # Results
 
