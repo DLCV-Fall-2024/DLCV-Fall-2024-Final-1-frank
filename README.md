@@ -30,6 +30,7 @@
 
 * For the argument `--prediction`, you should provide the json file which format is identical to "submission.json" described in [Submission Rules](#Submission-Rules).
 * Both files will return the LLM judges and BLEU score of your predicted json file. The `Total score` is calculated by the following formula: `0.8 * LLM Score + 0.2 * BLEU-3`
+    
     ```
     Genral score: x.xx
     Reasoning score: x.xx
@@ -41,6 +42,7 @@
     Bleu_4 score: x.xx
     Total score: x.xx
     ```
+    
     `Notes:`
     * Since the total number of validation set is over the limit of free Gemini API, we suggest testing with only a small subset of the validation set when using Gemini API evaluation.
     * The results from LLaMA-3 may differ from Gemini's evaluation. Please use LLaMA-3's results **only as a reference**.
