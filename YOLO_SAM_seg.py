@@ -6,12 +6,7 @@ from datasets import load_dataset
 from segment_anything import sam_model_registry, SamPredictor
 from ultralytics import YOLO  
 
-SAFETY_RISK_CLASSES = [
-    'pedestrian', 'car', 'truck', 'motorcycle', 'bicycle', 'umbrella', 'fire hydrant', 'train', 'stop sign', 'bench', 'suitcase', 
-    'traffic light', 'stop-sign', 'bus', 'dog', 'chair', 'cone', 'person', 'backpack', 'sign', 'bottle', 'clock', 'parking', 'potted plant', 
-    'airplane', 'cow', 'horse', 'skateboard', 'handbag', 'parking meter', 'boat', 'bird', 'horse', 'tv', 'dining table', 'toilet', 'sports ball', 'kite', 'sheep', 
-    'cat', 'refrigerator', 'elephant', 'frisbee'
-]
+SAFETY_RISK_CLASSES = ['pedestrian', 'car', 'truck', 'motorcycle', 'bicycle', 'umbrella', 'fire hydrant', 'train', 'stop sign', 'bench', 'suitcase', 'traffic light', 'stop-sign', 'bus', 'dog', 'chair', 'cone', 'person', 'backpack', 'sign', 'bottle', 'clock', 'parking', 'potted plant', 'airplane', 'cow', 'horse', 'skateboard', 'handbag', 'parking meter', 'boat', 'bird', 'horse', 'tv', 'dining table', 'toilet', 'sports ball', 'kite', 'sheep', 'cat', 'refrigerator', 'elephant', 'frisbee', 'bed', 'oven', 'bear', 'teddy bear', 'mouse', 'book', 'laptop', 'couch', 'snowboard', 'cup', 'bowl', 'spoon', 'vase', 'cell phone', 'banana', 'tennis racket', 'keyboard', 'surfboard', 'toothbrush', 'microwave']
 
 def load_detection_model():
     model = YOLO('yolov8x.pt').to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
