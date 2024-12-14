@@ -9,3 +9,4 @@ val/
 .txt
 !few_shot/**/*.json
 data/*
+wandb/*

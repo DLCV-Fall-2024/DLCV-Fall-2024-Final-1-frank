@@ -10,6 +10,8 @@
 
 * ```supplement```: Code for other purpose
 
+* ```LLaVA```: Code for LLaVA repository
+
 # Initialization
 
 ## Environment Setup
@@ -29,6 +31,8 @@
     pip install -q -U google-generativeai
     ```
 
+4. (For training) You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
+
 ## Data Preparation
 
 * Conduct the following instruction
@@ -43,10 +47,16 @@
 
     * You could also choose to add ```--max_dataset_num``` to download partial of the dataset
 
-
+* **Watch Out!!**: Download the whole ```train``` dataset might requires 4-5 hours
 
 
 # Execution 
+
+## Training
+
+* Conduct ```bash finetune_test.sh```
+
+    * You could add ```CUDA_VISIBLE_DEVICES``` to assign which gpu you are going to use
 
 ## Evaluation
 
