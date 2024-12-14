@@ -8,4 +8,4 @@ val/
 *.ipynb
 .txt
 !few_shot/**/*.json
-dataset/*
+data/*

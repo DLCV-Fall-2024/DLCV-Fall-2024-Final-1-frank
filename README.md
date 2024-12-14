@@ -4,11 +4,47 @@
 
 # Folder Description
 
-* ```few_shot```: The example of few-shot
+* ```reference```: Store the previous README data
 
-* ```images```: The image used in ```README_original.md```
+* ```evaluation```: Code for evaluating the results
+
+* ```supplement```: Code for other purpose
 
 # Initialization
+
+## Environment Setup
+
+1. Make sure that your nvcc has the version >= ```11.7```
+2. Create a new environment (python version needs to `>=3.10`)
+    
+    ```
+    conda create -n <your_env_name> python=<python_version>=3.10>
+    conda activate <your_env_name>
+    pip install -r requirement.txt
+    ```
+
+3. Install Gemini API: To install Gemini API, please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
+    
+    ```
+    pip install -q -U google-generativeai
+    ```
+
+## Data Preparation
+
+* Conduct the following instruction
+
+    ```
+    python3 data_download.py --dataset_types train val test
+    ```
+
+    * The data would be downloaded in ```data``` folder
+
+    * You could modify given parameters in ```--dataset_types``` to download which split of data you want to download. e.g. ```--dataset_types train``` for only download the training dataset
+
+    * You could also choose to add ```--max_dataset_num``` to download partial of the dataset
+
+
+
 
 # Execution 
 

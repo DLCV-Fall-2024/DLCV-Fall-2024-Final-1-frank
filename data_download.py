@@ -3,14 +3,14 @@ import argparse, json, os
 from PIL import Image
 from tqdm import tqdm
 
-MAX_NUM = 6884
+MAX_NUM = 100000
 
 def _parser_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--output_dataset_directory', type=str, help='The folder for storing the datasets', default="dataset")
+    parser.add_argument('--output_dataset_directory', type=str, help='The folder for storing the datasets', default="data")
     parser.add_argument('--dataset_types', type=str, nargs='+', help="the purpose list for the datasets", default=["train", "val", "test"])
     parser.add_argument('--max_dataset_num', type=int, help="Since the total dataset is too large, so we instead search for the first several data. \
-        You could still download the whole dataset if set the value to be -1", default=10)
+        You could still download the partial dataset", default=None)
     return parser.parse_args()
 
 def main():
@@ -35,7 +35,7 @@ def main():
         
         # load the subset of the dataset
         dataset_iter = iter(dataset)
-        args.max_dataset_num = args.max_dataset_num if args.max_dataset_num != -1 else MAX_NUM
+        args.max_dataset_num = args.max_dataset_num if args.max_dataset_num else MAX_NUM
         for _ in range(args.max_dataset_num):
             try:
                 item = next(dataset_iter)
