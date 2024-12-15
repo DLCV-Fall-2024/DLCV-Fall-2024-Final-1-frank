@@ -58,6 +58,14 @@
 
     * You could add ```CUDA_VISIBLE_DEVICES``` to assign which gpu you are going to use
 
+## Prediction
+
+* After training, you can execute ```bash predict.sh```
+
+    * You have to replace the parameter ```--model-path``` with what you given ```--output_dir``` when you train.
+
+    * You could add ```CUDA_VISIBLE_DEVICES``` to assign which gpu you are going to use
+
 ## Evaluation
 
 * Two evaluation scripts to evaluate the performance of your model in **validation set**.
