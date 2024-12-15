@@ -1,126 +1,70 @@
 # DLCV Final Project
 
-# How to run your code?
-* TODO: Please provide the scripts for TAs to reproduce your results, including training and inference. For example, 
+## How to run the code?
+* it's feasible to utilize CUDA_VISIBLE_DEVICES to use different GPUs.
 
-```
-bash train.sh <Path to gt image folder> <Path to annot file>
-bash inference.sh <Path to gt image folder> <Path to annot file> <Path to predicted file>
-```
+* you might need vision transformer weight for sam throughout the usage of the repository. [Here](https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth&ved=2ahUKEwj9sI2KoaqKAxWhQfUHHXjJNQUQFnoECB4QAQ&usg=AOvVaw29bUYaHDECwvcL5oJ3N4Ev) is the pretrain weight of sam_vit_h_4b8939.pth. click the botton 'Here' to download for ease.
 
-You can add more arguments to the script if you need.
+### Segmentation using Grounding DINO + SAM
 
-# Usage
-To start working on this final project, you should clone this repository into your local machine by the following command:
-```
-    git clone https://github.com/DLCV-Fall-2024/DLCV-Fall-2024-Final-1-<team_name>.git
-```  
-Note that you should replace `<team_name>` with your own team name.
+    python3 DINO_seg.py
 
-For more details, please click [this link](https://docs.google.com/presentation/d/1eeXx_dL0OgkDn9_lhXnimTHrE6OYvAiiVOBwo2CTVOQ/edit#slide=id.g3196368f9ef_0_288) to view the slides of Final Project - .Multimodal Perception and Comprehension of Corner Cases in Autonomous Driving **The introduction video for final project can be accessed in the slides.**
+* make sure to first download the pretrained weights file of vision transformer under the path **./models/sam_vit_h_4b8939.pth**
 
-After cloning the repository from GitHub, the folder structure should be like this:
-```
-CODA-LM/
-└── few_shot/
-│   ├── scene_few_shot/
-│   │   ├── high.json
-│   │   └── low.json
-│   └── suggestion_few_shot/
-│       ├── high.json
-│       └── low.json 
-└── gemini_eval.py
-└── llama_eval.py
-└── scorer.py
-└── requirement.txt
-...
-```
+* grounding DINO pretrained model from (IDEA-Research/grounding-dino-base) will be downloaded, be aware of the memory usage.
 
-# Environment Setup
-1. Create a new environment (python version needs to `>=3.10`)
-```
-conda create -n <your_env_name> python=<python_version>=3.10>
-conda activate <your_env_name>
-pip install -r requirement.txt
-```
-2. Install Gemini API: To install Gemini API, please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
-```
-pip install -q -U google-generativeai
-```
-3. You can install any additional packages you need for you final project.
+* results will be saved in **./DINO_segmentation_results/**
 
-# Dataset
+### Segmentation using YOLOv8x + SAM
 
-![Submission Example](images/dataset.png)
+    python3 YOLO_SAM_seg.py
 
-## Download Dataset
-Our data is available on [huggingface](https://huggingface.co/datasets/ntudlcv/dlcv_2024_final1), you can load the data by the following command:
-```
-from datasets import load_dataset
+* make sure to first download the pretrained weights file of vision transformer under the path **./models/sam_vit_h_4b8939.pth**
 
-dataset = load_dataset("ntudlcv/dlcv_2024_final1", split=split, streaming=True)
-```
-The argmument `split` can be `["train", "val", "test"]`.
+* yolov8x pretrained model will be downloaded, be aware of the memory usage.
 
-## Dataset Format
-for each data, the data format is as follows:
-```
-{
-    "id": {subset_name}_{question_type}_{index},
-    "image": PIL image, 
-    "conversations": [
-        {"from": "human", "value": "input text"}, 
-        {"from": "gpt", "value": "output text"}
-    ], ...
-}
-```
-the value of key `conversations` shares the same format of LLaVA’s instruction tuning dataset format, you can see [LLaVA-instruct-150K](https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K) for further details
+* results will be saved in **./YOLO_SAM_segmentation_results/**
 
+### Segmentation using SAM
 
-# Submission Rules
-* You need to submit your predicted json file to the following link: [Codalab](https://codalab.lisn.upsaclay.fr/competitions/21009?secret_key=7bbae235-15a2-4e00-8e21-766ce95cd917&fbclid=IwZXh0bgNhZW0CMTAAAR1ZAHQiBXUiK8EN7bJm9wxxCA4DPutVfoiIOeLp6RVxpy31NSlot88bALE_aem_k_BebUC_R8P_nq9dTDlIzA)
-* The submission file should be a `zip` file named in `pred.zip` containing the following files:
-    * api_key.txt: your **valid** Gemini API key
-    * submission.json: your predicted json file (key: `id`, value: `your model's prediction`), 
-    * e.g.
-![Submission Example](images/submission.png)
-* You can submit up to **5** times per day.
-* For more submission details, please refer to the [slides](https://docs.google.com/presentation/d/1eeXx_dL0OgkDn9_lhXnimTHrE6OYvAiiVOBwo2CTVOQ/edit#slide=id.g319b4042369_5_87).
+    python3 SAM_all.py
 
-# Evaluation
-we provide two evaluation scripts to evaluate the performance of your model in **validation set**.
-1. `Gemini evaluation`: this file is identical to the one we used in Codalab
-```
-python3 gemini_eval.py --prediction <you predicted json file> --api_key <your gemini api key>
-```
-2. `Llama evaluation`: Since Gemini API has daily usage limits for free accounts, we provide a local testing option using LLaMA-3 as the LLM base model. Note that using llama_eval.py requires approximately 16GB of GPU memory.
-```
-python3 llama_eval.py --prediction <you predicted json file>
-```
-* For the argument `--prediction`, you should provide the json file which format is identical to "submission.json" described in [Submission Rules](#Submission-Rules).
-* Both files will return the LLM judges and BLEU score of your predicted json file. The `Total score` is calculated by the following formula: `0.8 * LLM Score + 0.2 * BLEU-3`
-```
-Genral score: x.xx
-Reasoning score: x.xx
-Suggestion score: x.xx
-LLM judges: x.xx
-Bleu_1 score: x.xx
-Bleu_2 score: x.xx
-Bleu_3 score: x.xx
-Bleu_4 score: x.xx
-Total score: x.xx
-```
-`Notes:`
-* Since the total number of validation set is over the limit of free Gemini API, we suggest testing with only a small subset of the validation set when using Gemini API evaluation.
-* The results from LLaMA-3 may differ from Gemini's evaluation. Please use LLaMA-3's results **only as a reference**.
-* The supplementary materials of using Gemini API and huggingface tokens can be found in [slides](https://docs.google.com/presentation/d/1eeXx_dL0OgkDn9_lhXnimTHrE6OYvAiiVOBwo2CTVOQ/edit#slide=id.g31b10de1f8f_7_155).
+* make sure to first download the pretrained weights file of vision transformer under the path **./models/sam_vit_h_4b8939.pth**
 
-### Deadline
-113/12/26 (Thur.) 23:59 (GMT+8)
-    
-# Q&A
-If you have any problems related to Final Project, you may
-- Use TA hours
-- Contact TAs by e-mail ([ntudlcv@gmail.com](mailto:ntudlcv@gmail.com))
-- Post your question under `[Final challenge 1] Discussion` section in NTU Cool Discussion
+* results will be saved in **./SAM_all_segmentation_results/**
+
+### Segmentation using Deeplabv3
+
+    python3 deeplab_seg.py
+
+* make sure to first download the pretrained weights file of vision transformer under the path **./models/sam_vit_h_4b8939.pth**
+
+* deeplabv3_resnet50 pretrained model will be downloaded, be aware of the memory usage.
+
+* the code will automatically resize images to (512, 512)
+ 
+* results will be saved in **./Deeplab_segmentation_results/**
+
+### Using diffusion model with Grounding DINO + SAM for data-augmentation
+
+    python3 DINO_diffusion.py
+
+* make sure to first download the pretrained weights file of vision transformer under the path **./models/sam_vit_h_4b8939.pth**
+
+* stable diffusion pretrained model from (runwayml/stable-diffusion-inpainting) will be downloaded, be aware of the memory usage.
+
+* grounding DINO pretrained model from (IDEA-Research/grounding-dino-base) will be downloaded, be aware of the memory usage.
+ 
+* results will be saved in **./DINO_diffusion_augmentation_results/**
+
+* you can modify the prompt in main function to guide the diffusion model for further research.
+
+## Download datasets
+
+### Segmentation by YOLOv8x + SAM
+[Dataset Link](https://drive.google.com/file/d/1cZE7crqzBCXlTS4TK-MCQihlSs1e1Kja/view?usp=sharing)
+
+* using ***gdown*** might come with the problem due to the large size of the dataset despite using '&confirm=t' method in https://stackoverflow.com/questions/60739653/gdown-is-giving-permission-error-for-particular-file-although-it-is-opening-up-f
+
+### Segmentation by Grounding DINO + SAM
 
