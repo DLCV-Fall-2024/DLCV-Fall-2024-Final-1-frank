@@ -49,18 +49,17 @@
 
 * **Watch Out!!**: Download the whole ```train``` dataset might requires 4-5 hours
 
-
 # Execution 
 
 ## Training
 
-* Conduct ```bash finetune_test.sh```
+* Conduct ```bash finetune.sh```
 
     * You could add ```CUDA_VISIBLE_DEVICES``` to assign which gpu you are going to use
 
 ## Prediction
 
-* After training, you can execute ```bash predict.sh```
+* After finetuning(i.e. conduct ```bash finetune.sh```), you can execute ```bash predict.sh```
 
     * You have to replace the parameter ```--model-path``` with what you given ```--output_dir``` when you train.
 
