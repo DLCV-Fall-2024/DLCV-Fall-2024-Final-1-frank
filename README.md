@@ -23,6 +23,7 @@
     conda create -n <your_env_name> python=<python_version>=3.10>
     conda activate <your_env_name>
     pip install -r requirement.txt
+    pip install flash-attn==2.5.8 protobuf==3.20 deepspeed
     ```
 
 3. Install Gemini API: To install Gemini API, please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
