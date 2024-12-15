@@ -1,4 +1,5 @@
-# DLCV Final Project
+# Austin
+Just run crop.py. It will read and process the images in cropped_example.
 
 # How to run your code?
 * TODO: Please provide the scripts for TAs to reproduce your results, including training and inference. For example, 
