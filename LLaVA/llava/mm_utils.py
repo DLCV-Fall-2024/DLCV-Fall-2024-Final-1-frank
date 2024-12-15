@@ -4,9 +4,10 @@ import base64
 import torch
 import math
 import ast
+import re
 
 from transformers import StoppingCriteria
-from .constants import IMAGE_TOKEN_INDEX
+from .constants import IMAGE_TOKEN_INDEX, REGION_TOKEN_INDEX
 
 
 def select_best_resolution(original_size, possible_resolutions):
@@ -182,11 +183,24 @@ def process_images(images, image_processor, model_cfg):
     return new_images
 
 
-def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, return_tensors=None):
-    prompt_chunks = [tokenizer(chunk).input_ids for chunk in prompt.split('<image>')]
+def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, return_tensors=None, region_token_index=REGION_TOKEN_INDEX, add_region_token=False):
+    # prompt_chunks = [tokenizer(chunk).input_ids for chunk in prompt.split('<image>')]
+    chunks = re.split(r'(<image>|<region>)', prompt)
+    prompt_chunks = [tokenizer(chunk).input_ids if chunk not in ['<image>', '<region>'] else chunk for chunk in chunks]
+    
+    def insert_separator(X):
+        input_ids = []
+        for chunk in X:
+            if chunk == '<image>':
+                input_ids.append([image_token_index])
+            elif chunk == '<region>' and add_region_token:
+                input_ids.append([region_token_index])
+            elif isinstance(chunk, list):  
+                input_ids.append(chunk)
+        return input_ids
 
-    def insert_separator(X, sep):
-        return [ele for sublist in zip(X, [sep]*len(X)) for ele in sublist][:-1]
+    # def insert_separator(X, sep):
+    #     return [ele for sublist in zip(X, [sep]*len(X)) for ele in sublist][:-1]
 
     input_ids = []
     offset = 0
@@ -194,8 +208,12 @@ def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX
         offset = 1
         input_ids.append(prompt_chunks[0][0])
 
-    for x in insert_separator(prompt_chunks, [image_token_index] * (offset + 1)):
+    for x in insert_separator(prompt_chunks):
         input_ids.extend(x[offset:])
+        offset = 0    
+    
+    # for x in insert_separator(prompt_chunks, [image_token_index] * (offset + 1)):
+    #     input_ids.extend(x[offset:])
 
     if return_tensors is not None:
         if return_tensors == 'pt':

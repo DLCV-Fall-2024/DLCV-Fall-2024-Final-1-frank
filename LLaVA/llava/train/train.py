@@ -21,6 +21,7 @@ import json
 import logging
 import pathlib
 from typing import Dict, Optional, Sequence, List
+import re
 
 import torch
 
@@ -436,7 +437,7 @@ def preprocess_v1(
     # Tokenize conversations
 
     if has_image:
-        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations], dim=0)
+        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_region_token=add_region_token) for prompt in conversations], dim=0)
     else:
         input_ids = tokenizer(
             conversations,
@@ -468,8 +469,8 @@ def preprocess_v1(
             parts[0] += sep
 
             if has_image:
-                round_len = len(tokenizer_image_token(rou, tokenizer))
-                instruction_len = len(tokenizer_image_token(parts[0], tokenizer)) - 2
+                round_len = len(tokenizer_image_token(rou, tokenizer, add_region_token=add_region_token))
+                instruction_len = len(tokenizer_image_token(parts[0], tokenizer, add_region_token=add_region_token)) - 2
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
@@ -635,10 +636,10 @@ def preprocess(
         conversations.append(conversation)
     # tokenize conversations
     def get_tokenize_len(prompts):
-        return [len(tokenizer_image_token(prompt, tokenizer)) for prompt in prompts]
+        return [len(tokenizer_image_token(prompt, tokenizer, add_region_token=add_region_token)) for prompt in prompts]
 
     if has_image:
-        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt') for prompt in conversations]
+        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_region_token=add_region_token) for prompt in conversations]
     else:
         conversations_tokenized = _tokenize_fn(conversations, tokenizer)
         input_ids = conversations_tokenized["input_ids"]
@@ -660,15 +661,27 @@ class LazySupervisedDataset(Dataset):
 
     def __init__(self, data_path: str,
                  tokenizer: transformers.PreTrainedTokenizer,
-                 data_args: DataArguments):
+                 data_args: DataArguments, 
+                 add_region_token: bool = False):
         super(LazySupervisedDataset, self).__init__()
         list_data_dict = json.load(open(data_path, "r"))
 
         rank0_print("Formatting inputs...Skip in lazy mode")
         self.tokenizer = tokenizer
         self.list_data_dict = list_data_dict
+        self._add_img_path()
+        if add_region_token:
+            self._add_region_token()
         self.data_args = data_args
 
+    def _add_img_path(self):
+        for data in self.list_data_dict:
+            data["image"] = f'{data["id"]}.png'
+    
+    def _add_region_token(self):
+        for data in self.list_data_dict:
+            if "Focus on objects influencing" in data["conversations"][0]["value"]:
+                data["conversations"][0]["value"] = re.sub(r"(Focus on objects)", r"\1 <region>", data["conversations"][0]["value"])
     def __len__(self):
         return len(self.list_data_dict)
 
@@ -778,7 +791,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
     """Make dataset and collator for supervised fine-tuning."""
     train_dataset = LazySupervisedDataset(tokenizer=tokenizer,
                                 data_path=data_args.data_path,
-                                data_args=data_args)
+                                data_args=data_args, add_region_token=add_region_token)
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     return dict(train_dataset=train_dataset,
                 eval_dataset=None,
@@ -787,6 +800,9 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
 
 def train(attn_implementation=None):
     global local_rank
+    
+    global add_region_token
+    add_region_token = False
 
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
