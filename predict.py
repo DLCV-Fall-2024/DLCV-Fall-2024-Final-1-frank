@@ -39,7 +39,7 @@ def eval_model(args):
     questions = get_chunk(questions, args.num_chunks, args.chunk_idx)
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
-    ans_file = open(answers_file, "w")
+    # ans_file = open(answers_file, "w")
     
     results = {}
     for line in tqdm(questions):
@@ -85,9 +85,13 @@ def eval_model(args):
         #                            "model_id": model_name,
         #                            "metadata": {}}) + "\n")
         # ans_file.flush()
-        print(outputs)
+        print(idx, outputs)
+        
         results[idx] = outputs
-    ans_file.close()
+    # ans_file.close()
+    with open(args.answers_file, 'w') as f:
+        json.dump(results, f, indent=4) 
+    
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
