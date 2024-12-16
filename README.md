@@ -32,7 +32,14 @@
     pip install -q -U google-generativeai
     ```
 
-4. (For training) You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
+4. Download the weights of pre-trained model:
+
+    ```
+    bash pretrained_download.sh
+    ```
+
+5. (For training) You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
+
 
 ## Data Preparation
 
@@ -54,7 +61,11 @@
 
 ## Training
 
-* Conduct ```bash finetune.sh```
+* Conduct the following scripts 
+
+    ```
+    bash finetune.sh
+    ```
 
     * You could add ```CUDA_VISIBLE_DEVICES``` to assign which gpu you are going to use
 
@@ -102,7 +113,19 @@
     * The results from LLaMA-3 may differ from Gemini's evaluation. Please use LLaMA-3's results **only as a reference**.
     * The supplementary materials of using Gemini API and huggingface tokens can be found in [slides](https://docs.google.com/presentation/d/1eeXx_dL0OgkDn9_lhXnimTHrE6OYvAiiVOBwo2CTVOQ/edit#slide=id.g31b10de1f8f_7_155).
 
+## Supplement: Segmentation 
+
+* 
+
+
 # Results
+
+| Training Scripts | Prediction Scripts| Pre-trained Weights | Add Segmentation | Score(Val) | Score(Test) |
+|------------------|------------------|------|-----|------|-------------|
+| User Authentication | Secure login and registration functionality   | ✅ Completed  |
+| Data Visualization  | Interactive charts and graphs for analysis     | 🔄 In Progress |
+| API Integration     | Fetch data from external APIs                  | ⬜ Planned    |
+
 
 # Supplement
 
