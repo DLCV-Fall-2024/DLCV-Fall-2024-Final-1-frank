@@ -61,10 +61,10 @@
 
 ## Download datasets
 
+* using ***gdown*** might come with the problem due to the large size of the dataset despite using '&confirm=t' method in https://stackoverflow.com/questions/60739653/gdown-is-giving-permission-error-for-particular-file-although-it-is-opening-up-f
+
 ### Segmentation by YOLOv8x + SAM
 [Dataset Link](https://drive.google.com/file/d/1cZE7crqzBCXlTS4TK-MCQihlSs1e1Kja/view?usp=sharing)
 
-* using ***gdown*** might come with the problem due to the large size of the dataset despite using '&confirm=t' method in https://stackoverflow.com/questions/60739653/gdown-is-giving-permission-error-for-particular-file-although-it-is-opening-up-f
-
 ### Segmentation by Grounding DINO + SAM
-
+[Dataset Link](https://drive.google.com/file/d/1NIQ8ugypGr_4cPsRn7uE3wMKYdOKtsIk/view?usp=sharing)
