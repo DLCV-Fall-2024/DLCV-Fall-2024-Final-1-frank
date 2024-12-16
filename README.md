@@ -120,9 +120,9 @@
 
 # Results
 
-| Training Scripts | Prediction Scripts| Pre-trained Weights | Add Segmentation | Score(Val) | Score(Test) |
-|-----|--------------------|-----|--|-----|---------|
-| ```scripts/llava-v1.5-7b-lora/finetune.sh``` | ```scripts/llava-v1.5-7b-lora/predict.sh```| ✅ (Link)[]|❌| - | 4.117 |
+| Training Scripts | Pre-trained Weights | Prediction Scripts(Val)|Prediction Scripts(Test)| Add Segmentation | Score(Val) | Score(Test) |
+|-----|--------------------|-----|--|-----|---------|----|
+| ```scripts/llava-v1.5-7b-lora/finetune.sh``` |✅ (Link)[]| ```scripts/llava-v1.5-7b-lora/predict_val.sh```|```scripts/llava-v1.5-7b-lora/predict_test.sh``` |❌| - | 4.117 |
 
 
 # Supplement
