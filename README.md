@@ -5,6 +5,18 @@
 
 * you might need vision transformer weight for sam throughout the usage of the repository. [Here](https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth&ved=2ahUKEwj9sI2KoaqKAxWhQfUHHXjJNQUQFnoECB4QAQ&usg=AOvVaw29bUYaHDECwvcL5oJ3N4Ev) is the pretrain weight of sam_vit_h_4b8939.pth. click the botton 'Here' to download for ease.
 
+### Grounding DINO + Depth Anything with detected labels 
+
+    python3 DINO_with_labels.py
+
+* make sure to first download the pretrained weights file of depth anything v2 under the path **./models/depth_anything_v2_vitl.pth**
+    
+    > you can download the model [here](https://huggingface.co/depth-anything/Depth-Anything-V2-Large/resolve/main/depth_anything_v2_vitl.pth?download=true). make sure to put the model in the right folder with the correct path name (depth_anything_v2_vitl.pth).
+
+* grounding DINO pretrained model from (IDEA-Research/grounding-dino-base) will be downloaded, be aware of the memory usage.
+
+* results will be saved in **./DINO_with_information_results/**
+
 ### Segmentation using Grounding DINO + SAM
 
     python3 DINO_seg.py
@@ -68,3 +80,8 @@
 
 ### Segmentation by Grounding DINO + SAM
 [Dataset Link](https://drive.google.com/file/d/1pzO8zgHq5im8Ae2yqu77YeYeZDFTTFFA/view?usp=sharing)
+
+### Grounding DINO + Depth anythings v2 with multiple detection boxes (genral + regional) images only!
+[Dataset Link](https://drive.google.com/file/d/1D6sUu0TDGfW8euHuYhm5pd-4MvJtARlD/view?usp=sharing)
+
+### Grounding DINO + Depth anythings v2 with multiple detection boxes (genral + regional) informational json files only!
