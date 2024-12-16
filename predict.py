@@ -85,7 +85,7 @@ def eval_model(args):
         #                            "model_id": model_name,
         #                            "metadata": {}}) + "\n")
         # ans_file.flush()
-        print(idx, outputs)
+        # print(idx, outputs)
         
         results[idx] = outputs
     # ans_file.close()

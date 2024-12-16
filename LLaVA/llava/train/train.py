@@ -22,6 +22,9 @@ import logging
 import pathlib
 from typing import Dict, Optional, Sequence, List
 import re
+import numpy as np
+from collections import defaultdict
+from tqdm import tqdm
 
 import torch
 
@@ -38,6 +41,7 @@ from ..mm_utils import tokenizer_image_token
 
 from PIL import Image
 
+from segmentation.DINO_seg import load_groundingdino_model, get_bounding_boxes
 
 local_rank = None
 
@@ -65,6 +69,8 @@ class ModelArguments:
     mm_use_im_patch_token: bool = field(default=True)
     mm_patch_merge_type: Optional[str] = field(default='flat')
     mm_vision_select_feature: Optional[str] = field(default="patch")
+    add_region_token: Optional[bool] = field(default=False)
+    add_region_prompt: Optional[bool] = field(default=False)
 
 
 @dataclass
@@ -662,17 +668,23 @@ class LazySupervisedDataset(Dataset):
     def __init__(self, data_path: str,
                  tokenizer: transformers.PreTrainedTokenizer,
                  data_args: DataArguments, 
-                 add_region_token: bool = False):
+                 add_region_token: bool = False,
+                 add_region_prompt: bool=False):
         super(LazySupervisedDataset, self).__init__()
         list_data_dict = json.load(open(data_path, "r"))
 
         rank0_print("Formatting inputs...Skip in lazy mode")
+        assert (not (add_region_token and add_region_prompt)), "You must choose only one!"
         self.tokenizer = tokenizer
         self.list_data_dict = list_data_dict
+        self.add_region_token = add_region_token
+        self.data_args = data_args
         self._add_img_path()
         if add_region_token:
             self._add_region_token()
-        self.data_args = data_args
+        elif add_region_prompt:
+            self._add_region_prompt()
+        
 
     def _add_img_path(self):
         for data in self.list_data_dict:
@@ -680,8 +692,40 @@ class LazySupervisedDataset(Dataset):
     
     def _add_region_token(self):
         for data in self.list_data_dict:
-            if "Focus on objects influencing" in data["conversations"][0]["value"]:
+            if self.add_region_token:
+                first_path = os.path.join("data/DINO_segmentation_results", f'{data["id"]}_segmentation.jpg')
+                second_path = os.path.join("data/YOLO_SAM_segmentation_results", f'{data["id"]}_safety_segmentation.png')
+                data["regional_image"] = first_path if os.path.exists(first_path) else second_path
+            else:
+                data["regional_image"] = None 
+            if ("general" in data["id"]) or ("suggestion" in data["id"]):
                 data["conversations"][0]["value"] = re.sub(r"(Focus on objects)", r"\1 <region>", data["conversations"][0]["value"])
+            elif "regional" in data["id"]:
+                data["conversations"][0]["value"] = re.sub(r"(describe the object)", r"\1 <region>", data["conversations"][0]["value"])
+    
+    def _add_region_prompt(self):
+        processor, groundingdino_model, device = load_groundingdino_model()
+        print("We first conduct segmentation")
+        for data in tqdm(self.list_data_dict):
+            img_path = os.path.join(self.data_args.image_folder, data["image"])
+            image = Image.open(img_path).convert('RGB')
+            
+            boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
+            if len(boxes) == 0:
+                continue
+            result_dict = defaultdict(list)
+            for bbox, label in zip(boxes, labels):
+                result_dict[label].append(bbox.astype(int).tolist())
+            result_dict = dict(result_dict)
+            result_text = ""
+            for key in result_dict:
+                result_text += f"{key}: {result_dict[key]} \n"
+            appending_prompt = f'''
+            You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]
+            {result_text}
+            '''
+            data["conversations"][0]["value"] += appending_prompt
+    
     def __len__(self):
         return len(self.list_data_dict)
 
@@ -709,9 +753,13 @@ class LazySupervisedDataset(Dataset):
         assert len(sources) == 1, "Don't know why it is wrapped to a list"  # FIXME
         if 'image' in sources[0]:
             image_file = self.list_data_dict[i]['image']
+            
             image_folder = self.data_args.image_folder
             processor = self.data_args.image_processor
             image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
+            if self.add_region_token:
+                regional_image_path = self.list_data_dict[i]['regional_image']
+                regional_image = Image.open(regional_image_path).convert('RGB')
             if self.data_args.image_aspect_ratio == 'pad':
                 def expand2square(pil_img, background_color):
                     width, height = pil_img.size
@@ -727,6 +775,9 @@ class LazySupervisedDataset(Dataset):
                         return result
                 image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
                 image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
+                if self.add_region_token:
+                    regional_image  = expand2square(regional_image, tuple(int(x*255) for x in processor.image_mean))
+                    regional_image = processor.preprocess(regional_image, return_tensors='pt')['pixel_values'][0]
             else:
                 image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
             sources = preprocess_multimodal(
@@ -745,6 +796,8 @@ class LazySupervisedDataset(Dataset):
         # image exist in the data
         if 'image' in self.list_data_dict[i]:
             data_dict['image'] = image
+        if self.add_region_token:
+            data_dict["regional_image"] = regional_image 
         elif self.data_args.is_multimodal:
             # image does not exist in the data, but the model is multimodal
             crop_size = self.data_args.image_processor.crop_size
@@ -782,6 +835,13 @@ class DataCollatorForSupervisedDataset(object):
                 batch['images'] = torch.stack(images)
             else:
                 batch['images'] = images
+        
+        if 'regional_image' in instances[0]:
+            regional_images = [instance['regional_image'] for instance in instances]
+            if all(x is not None and x.shape == regional_images[0].shape for x in regional_images):
+                batch['regional_images'] = torch.stack(regional_images)
+            else:
+                batch['regional_images'] = regional_images
 
         return batch
 
@@ -791,7 +851,9 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
     """Make dataset and collator for supervised fine-tuning."""
     train_dataset = LazySupervisedDataset(tokenizer=tokenizer,
                                 data_path=data_args.data_path,
-                                data_args=data_args, add_region_token=add_region_token)
+                                data_args=data_args, 
+                                add_region_token=add_region_token,
+                                add_region_prompt=add_region_prompt)
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     return dict(train_dataset=train_dataset,
                 eval_dataset=None,
@@ -800,13 +862,13 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
 
 def train(attn_implementation=None):
     global local_rank
-    
-    global add_region_token
-    add_region_token = False
+    global add_region_token, add_region_prompt
 
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    add_region_token = model_args.add_region_token
+    add_region_prompt =  model_args.add_region_prompt
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
 
