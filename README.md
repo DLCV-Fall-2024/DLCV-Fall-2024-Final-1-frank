@@ -67,4 +67,4 @@
 [Dataset Link](https://drive.google.com/file/d/1cZE7crqzBCXlTS4TK-MCQihlSs1e1Kja/view?usp=sharing)
 
 ### Segmentation by Grounding DINO + SAM
-[Dataset Link](https://drive.google.com/file/d/1NIQ8ugypGr_4cPsRn7uE3wMKYdOKtsIk/view?usp=sharing)
+[Dataset Link](https://drive.google.com/file/d/1fYrEOxEvHzy6h8vPd1q-X3uSnfpCPPVJ/view?usp=sharing)
