@@ -121,10 +121,8 @@
 # Results
 
 | Training Scripts | Prediction Scripts| Pre-trained Weights | Add Segmentation | Score(Val) | Score(Test) |
-|------------------|------------------|------|-----|------|-------------|
-| User Authentication | Secure login and registration functionality   | ✅ Completed  |
-| Data Visualization  | Interactive charts and graphs for analysis     | 🔄 In Progress |
-| API Integration     | Fetch data from external APIs                  | ⬜ Planned    |
+|-----|--------------------|-----|--|-----|---------|
+| ```scripts/llava-v1.5-7b-lora/finetune.sh``` | ```scripts/llava-v1.5-7b-lora/predict.sh```| ✅ (Link)[]|❌| - | 4.117 |
 
 
 # Supplement
