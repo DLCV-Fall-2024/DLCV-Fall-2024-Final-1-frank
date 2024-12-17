@@ -75,13 +75,14 @@
 
 * using ***gdown*** might come with the problem due to the large size of the dataset despite using '&confirm=t' method in https://stackoverflow.com/questions/60739653/gdown-is-giving-permission-error-for-particular-file-although-it-is-opening-up-f
 
-### Segmentation by YOLOv8x + SAM
-[Dataset Link](https://drive.google.com/file/d/1cZE7crqzBCXlTS4TK-MCQihlSs1e1Kja/view?usp=sharing)
+### Segmentation by YOLOv8x + SAM 
+[Dataset Link (3.34 GB)](https://drive.google.com/file/d/1cZE7crqzBCXlTS4TK-MCQihlSs1e1Kja/view?usp=sharing)
 
 ### Segmentation by Grounding DINO + SAM
-[Dataset Link](https://drive.google.com/file/d/1pzO8zgHq5im8Ae2yqu77YeYeZDFTTFFA/view?usp=sharing)
+[Dataset Link (581.8 MB)](https://drive.google.com/file/d/1pzO8zgHq5im8Ae2yqu77YeYeZDFTTFFA/view?usp=sharing)
 
-### Grounding DINO + Depth anythings v2 with multiple detection boxes (genral + regional) images only!
-[Dataset Link](https://drive.google.com/file/d/1D6sUu0TDGfW8euHuYhm5pd-4MvJtARlD/view?usp=sharing)
+### Grounding DINO + Depth anythings v2 with multiple detection boxes (general + regional) images only!
+[Dataset Link (3.37 GB)](https://drive.google.com/file/d/1D6sUu0TDGfW8euHuYhm5pd-4MvJtARlD/view?usp=sharing)
 
-### Grounding DINO + Depth anythings v2 with multiple detection boxes (genral + regional) informational json files only!
+### Grounding DINO + Depth anythings v2 with multiple detection boxes (general + regional) informational json files only!
+[Dataset Link (24.2 MB)](https://drive.google.com/file/d/1aR2sZ5m40xXG8XCBq4TIFwEiF6cyE-4l/view?usp=sharing)

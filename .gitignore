@@ -8,3 +8,5 @@ val/
 *.ipynb
 .txt
 !few_shot/**/*.json
+* .pt
+.pt
