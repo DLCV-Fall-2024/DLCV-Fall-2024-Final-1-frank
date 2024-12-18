@@ -16,29 +16,29 @@
 
 ## Environment Setup
 
-1. Make sure that your nvcc has the version >= ```11.7```
-2. Create a new environment (python version needs to `>=3.10`)
+1. Create a new environment (python version needs to `>=3.10`)
     
     ```
-    conda create -n <your_env_name> python=<python_version>=3.10>
+    conda create -n <your_env_name> python=3.10 -y
     conda activate <your_env_name>
     pip install -r requirement.txt
-    pip install flash-attn==2.5.8 protobuf==3.20 deepspeed
     ```
 
-3. Install Gemini API: To install Gemini API, please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
+2. Install Gemini API: To install Gemini API, please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
     
     ```
     pip install -q -U google-generativeai
     ```
 
-4. Download the weights of pre-trained model:
+    * Notes: Once you install ```google-generativeai```, if you want to go back to train, you have to conduct ```pip install protobuf==3.20``` to reverse the version of ```protobuf```
+
+3. Download the weights of pre-trained model:
 
     ```
     bash pretrained_download.sh
     ```
 
-5. (For training) You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
+4. (For training) You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
 
 
 ## Data Preparation
@@ -67,7 +67,7 @@
     bash finetune.sh
     ```
 
-    * You could add ```CUDA_VISIBLE_DEVICES``` to assign which gpu you are going to use
+    * If your environment has more than one gpu, you need to choose one gpu to conduct, which you needs to add ```CUDA_VISIBLE_DEVICES = <your gpu num>``` to assign which gpu you are going to use.
 
 ## Prediction
 
@@ -122,8 +122,8 @@
 
 | Name | Add Segmentation | Training Epochs | Training Scripts | Pre-trained Weights / Download scripts | Prediction Scripts(Val)|Prediction Scripts(Test)|  Score(Val) | Score(Test) |
 |-----|-----|--------------------|-----|--|-----|---------|----|--|
-|Only Training with LoRA|❌|3|-|-|-|-|?|4.117|
-|Only Training with LoRA|❌|5|```scripts/llava-v1.5-7b-lora/finetune.sh``` |✅ (Link)[]/ | ```scripts/llava-v1.5-7b-lora/predict_val.sh```|```scripts/llava-v1.5-7b-lora/predict_test.sh``` |?|?|
+|Only Training with LoRA|❌|3|```scripts/llava-v1.5-7b-lora/finetune.sh```|✅ (Link)[]/ |```scripts/llava-v1.5-7b-lora/predict_val.sh```|```scripts/llava-v1.5-7b-lora/predict_test.sh``` |?|4.117|
+|Only Training with LoRA|❌|5|-|-|-|-|?|2.881|
 
 
 # Supplement

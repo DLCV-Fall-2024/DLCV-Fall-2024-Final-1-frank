@@ -725,6 +725,7 @@ class LazySupervisedDataset(Dataset):
             {result_text}
             '''
             data["conversations"][0]["value"] += appending_prompt
+            torch.cuda.empty_cache()
     
     def __len__(self):
         return len(self.list_data_dict)

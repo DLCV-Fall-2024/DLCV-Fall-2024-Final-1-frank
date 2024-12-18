@@ -1,7 +1,6 @@
 from datasets import load_dataset
-import argparse, json, os
+import argparse, json, os, sys
 from PIL import Image
-from tqdm import tqdm
 
 MAX_NUM = 100000
 
@@ -23,7 +22,7 @@ def main():
     # key_info = [f"{key}: {type(check_dataset[0][key])}\n" for key in key_list]
     # print(f"The columns(keys) in the dataset are:\n{''.join(key_info)}")
     
-    for dataset_type in tqdm(args.dataset_types):
+    for dataset_type in args.dataset_types:
         # initialize
         output_dir = os.path.join(args.output_dataset_directory, dataset_type)
         os.makedirs(output_dir, exist_ok=True)
@@ -56,6 +55,7 @@ def main():
         annotation_path = os.path.join(output_dir, "annotation.json")
         with open(annotation_path, 'w') as f:
             json.dump(annotation, f, indent=4)
+        sys.exit(0)
             
 if __name__ == "__main__":
     main()

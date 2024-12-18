@@ -10,3 +10,4 @@ val/
 !few_shot/**/*.json
 data/*
 wandb/*
+checkpoints/*

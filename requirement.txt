@@ -21,3 +21,8 @@ wandb
 beautifulsoup4
 segment_anything
 ultralytics
+protobuf==3.20
+flash-attn==2.5.8 
+deepspeed
+future
+python-dotenv
