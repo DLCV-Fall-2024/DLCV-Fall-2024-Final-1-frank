@@ -1,7 +1,11 @@
+from functools import partial
 import cv2
 import numpy as np
 import os
 from extractRect import *
+from datasets import load_from_disk
+from tqdm import tqdm
+import json
 
 INF = 1e9
 
@@ -47,11 +51,12 @@ def remainred(img):
     return output_img
 
 
-pth = "./cropped_example"
-for idx in ["2", "3", "Train_regional_1044", "Train_regional_1107", "Train_regional_1230", "Train_regional_1231"]:
-    image = cv2.imread(os.path.join(pth, f"{idx}.jpg"))
-    if image is None:
-        raise IOError("Could not load the image.")
+def proc(im, dt, pth):
+    image = cv2.cvtColor(np.array(im["image"]), cv2.COLOR_RGB2BGR)
+    cv2.imwrite(os.path.join("org", dt, f"{im['id']}.png"), image)
+    # image = cv2.imread(os.path.join(pth, f"{idx}.jpg"))
+    # if image is None:
+    #     raise IOError("Could not load the image.")
 
     image_cp = remainred(image)
     image_cp[:, :, 0] = 255
@@ -74,7 +79,7 @@ for idx in ["2", "3", "Train_regional_1044", "Train_regional_1107", "Train_regio
     # thresh = 255 - thresh
     # cv2.imwrite(f"{idx}_thresh1.png", thresh1)
     # cv2.imwrite(f"{idx}_thresh2.png", thresh2)
-    cv2.imwrite(os.path.join(pth, f"{idx}_thresh.png"), thresh)
+    cv2.imwrite(os.path.join("thresh", dt, f"{im['id']}.png"), thresh)
 
     # Find contours of the thresholded image
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
@@ -84,16 +89,21 @@ for idx in ["2", "3", "Train_regional_1044", "Train_regional_1107", "Train_regio
     # cv2.imwrite(f"{idx}_contours.png", blank)
 
     if not contours:
-        print(f"{idx} - No contours found.")
-        continue
+        print(f"{im['id']} - No contours found.")
+        return {
+            "id": im["id"],
+            "coord": None,
+            "image": None,
+            "conversations": None
+        }
 
     blank = np.zeros_like(image)
     cv2.drawContours(blank, contours, -1, (255, 255, 255), -1)
-    cv2.imwrite(os.path.join(pth, f"{idx}_contour.png"), blank)
+    cv2.imwrite(os.path.join("contour", dt, f"{im['id']}.png"), blank)
 
     cts = []
     for ct in reversed(sorted(contours, key=cv2.contourArea)):
-        if cv2.contourArea(ct) < 10:
+        if cv2.contourArea(ct) < 20:
             break
         # https://stackoverflow.com/questions/47520487/how-to-use-python-opencv-to-find-largest-connected-component-in-a-single-channel
         # labels, stats = cv2.connectedComponentsWithStats(thresh, connectivity=8)[1:3]
@@ -134,6 +144,14 @@ for idx in ["2", "3", "Train_regional_1044", "Train_regional_1107", "Train_regio
         except Exception as e:
             break
 
+    if cts == []:
+        print(f"{im['id']} - No rectangles found.")
+        return {
+            "id": im["id"],
+            "coord": None,
+            "image": None,
+            "conversations": None
+        }
     approx = max(cts, key=cv2.contourArea)
 
     # [x, y], [a, b], angle = cv2.fitEllipse(ct)
@@ -151,6 +169,7 @@ for idx in ["2", "3", "Train_regional_1044", "Train_regional_1107", "Train_regio
     # approx = np.int0([[it] for it in cv2.boxPoints(app)])
 
     # cv2.drawContours(image, li, -1, (255, 255, 255), -1)
+
     mask = np.zeros_like(image)
     cv2.fillPoly(mask, [approx], (255, 255, 255))
     mask_gray = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
@@ -159,4 +178,38 @@ for idx in ["2", "3", "Train_regional_1044", "Train_regional_1107", "Train_regio
     # Use the mask to isolate the rectangle from the original image
     result = np.zeros_like(image)
     result[mask_binary == 255] = image[mask_binary == 255]
-    cv2.imwrite(os.path.join(pth, f"{idx}_output.png"), result)
+    cv2.imwrite(os.path.join(pth, f"{im['id']}.png"), result)
+
+    return {
+        "id": im["id"],
+        "coord": np.array([x[0] for x in approx]).tolist(),
+        "image": None,
+        "conversations": None
+    }
+
+
+if __name__ == '__main__':
+    root = "cropped"
+    for dt in ["test", "train", "val"]:
+        pth = os.path.join(root, dt)
+        dataset = load_from_disk(dt).filter(lambda x: x['id'].split("_")[1] == "regional")
+        # dataset = load_from_disk(dt).filter(lambda x: x['id'] in ["Test_regional_0","Test_regional_1"])
+
+        os.makedirs(pth, exist_ok=True)
+        os.makedirs(os.path.join("thresh", dt), exist_ok=True)
+        os.makedirs(os.path.join("contour", dt), exist_ok=True)
+        os.makedirs(os.path.join("org", dt), exist_ok=True)
+
+        rw = dataset.map(
+            partial(proc, dt=dt, pth=pth), batched=False, num_proc=16
+        )
+        jsn = {}
+        for d in rw:
+            if d["coord"] is None:
+                continue
+            jsn.update({
+                d["id"]: d["coord"]
+            })
+
+        with open(f"{dt}_coords.json", "w") as f:
+            json.dump(jsn, f)
