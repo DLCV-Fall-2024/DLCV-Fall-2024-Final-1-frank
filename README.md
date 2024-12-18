@@ -17,6 +17,14 @@
 
 * results will be saved in **./DINO_with_information_results/**
 
+### Crop using Grounding DINO resulted images and json file 
+
+    python3 crop.py
+
+* The images and json files should be put into the same folder **./DINO_with_information_results/**, or you can modify the image_directory or json_directory in the code with your preference. 
+
+* results will be saved in **./processed_DINO_results/**
+
 ### Segmentation using Grounding DINO + SAM
 
     python3 DINO_seg.py
@@ -86,3 +94,6 @@
 
 ### Grounding DINO + Depth anythings v2 with multiple detection boxes (general + regional) informational json files only!
 [Dataset Link (24.2 MB)](https://drive.google.com/file/d/1aR2sZ5m40xXG8XCBq4TIFwEiF6cyE-4l/view?usp=sharing)
+
+### Croped results using Grounding DINO's images and json files (general + regional)
+[Dataset Link (1012.2 MB)](https://drive.google.com/file/d/1YCz8eTSbEHgFMKFQkx5WsAXIhFPj4CrN/view?usp=sharing)
