@@ -5,6 +5,43 @@
 
 * you might need vision transformer weight for sam throughout the usage of the repository. [Here](https://www.google.com/url?sa=t&source=web&rct=j&opi=89978449&url=https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth&ved=2ahUKEwj9sI2KoaqKAxWhQfUHHXjJNQUQFnoECB4QAQ&usg=AOvVaw29bUYaHDECwvcL5oJ3N4Ev) is the pretrain weight of sam_vit_h_4b8939.pth. click the botton 'Here' to download for ease.
 
+### YOLOv8n for finding bbox in regional task
+First, run the following command:
+
+    python3 data_preparation.py
+
+* the results images and json files will be stored in ./data_preparation/ 
+
+* each image will have just a bbox, each json file will have just a information for a bbox
+
+Then:
+
+    python3 data_pre_process.py
+
+* the outputs need to be modified slightly to be as the following architecture (manually spliting the desired ratio of train/val/test):
+    ```    
+    dataset/
+    ├─ images/
+    │  ├─ train/
+    │  ├─ val/
+    │  └─ test/
+    └─ labels/
+        ├─ train/
+        ├─ val/
+        └─ test/
+    ```
+Then, run the following command for the yolo training:
+
+    yolo detect train data=data.yaml model=yolov8n.pt epochs=100 imgsz=640
+
+* the resulted model weight will be stored in ./runs/detect/train/weights/best.pt
+
+Finally, to inference themodel and generating desired output for the regional task, run the following command:
+
+    python3 inference.py
+
+* the results will be saved in ./regional_results/
+
 ### Grounding DINO + Depth Anything with detected labels 
 
     python3 DINO_with_labels.py
