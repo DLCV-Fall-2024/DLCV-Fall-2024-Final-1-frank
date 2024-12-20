@@ -210,7 +210,7 @@ def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX
 
     for x in insert_separator(prompt_chunks):
         input_ids.extend(x[offset:])
-        offset = 0    
+        offset = (offset + 1) % 2
     
     # for x in insert_separator(prompt_chunks, [image_token_index] * (offset + 1)):
     #     input_ids.extend(x[offset:])
@@ -220,7 +220,6 @@ def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX
             return torch.tensor(input_ids, dtype=torch.long)
         raise ValueError(f'Unsupported tensor type: {return_tensors}')
     return input_ids
-
 
 def get_model_name_from_path(model_path):
     model_path = model_path.strip("/")

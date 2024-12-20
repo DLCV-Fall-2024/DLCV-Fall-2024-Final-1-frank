@@ -25,6 +25,7 @@ import re
 import numpy as np
 from collections import defaultdict
 from tqdm import tqdm
+import cv2 
 
 import torch
 
@@ -42,6 +43,7 @@ from ..mm_utils import tokenizer_image_token
 from PIL import Image
 
 from segmentation.DINO_seg import load_groundingdino_model, get_bounding_boxes
+from segmentation.crop_regional import crop
 
 local_rank = None
 
@@ -680,9 +682,8 @@ class LazySupervisedDataset(Dataset):
         self.add_region_token = add_region_token
         self.data_args = data_args
         self._add_img_path()
-        if add_region_token:
-            self._add_region_token()
-        elif add_region_prompt:
+        self._add_region_token()
+        if add_region_prompt:
             self._add_region_prompt()
         
 
@@ -692,41 +693,135 @@ class LazySupervisedDataset(Dataset):
     
     def _add_region_token(self):
         for data in self.list_data_dict:
-            if self.add_region_token:
-                first_path = os.path.join("data/DINO_segmentation_results", f'{data["id"]}_segmentation.jpg')
-                second_path = os.path.join("data/YOLO_SAM_segmentation_results", f'{data["id"]}_safety_segmentation.png')
-                data["regional_image"] = first_path if os.path.exists(first_path) else second_path
-            else:
-                data["regional_image"] = None 
-            if ("general" in data["id"]) or ("suggestion" in data["id"]):
-                data["conversations"][0]["value"] = re.sub(r"(Focus on objects)", r"\1 <region>", data["conversations"][0]["value"])
-            elif "regional" in data["id"]:
-                data["conversations"][0]["value"] = re.sub(r"(describe the object)", r"\1 <region>", data["conversations"][0]["value"])
+            data["regional_image"] = None 
+        if self.add_region_token:
+            for data in self.list_data_dict:
+                if "regional" in data["id"]:
+                    region_crop_path = os.path.join("data/regional_segmentation", f'{data["id"]}.png')
+                    if not os.path.exists(region_crop_path):
+                        TRAINING_IMG_PATH = "data/train/images"
+                        image_path = os.path.join(TRAINING_IMG_PATH, f'{data["id"]}.png')
+                        image = cv2.imread(image_path)
+
+                        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+                        lower_red1 = np.array([0, 100, 100])   # 紅色下界1
+                        upper_red1 = np.array([10, 255, 255]) # 紅色上界1
+                        lower_red2 = np.array([160, 100, 100]) # 紅色下界2
+                        upper_red2 = np.array([180, 255, 255]) # 紅色上界2
+
+                        mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+                        mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+                        mask = cv2.bitwise_or(mask1, mask2)
+
+                        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+                        if contours:
+                            largest_contour = max(contours, key=cv2.contourArea)
+                            x, y, w, h = cv2.boundingRect(largest_contour)
+                            
+                            mask_image = np.zeros_like(image)
+                            mask_image[y:y+h, x:x+w] = image[y:y+h, x:x+w]
+
+                            cv2.imwrite(region_crop_path, mask_image)
+                    data["regional_image"] = region_crop_path
+                    data["conversations"][0]["value"] = re.sub(r"(describe the object)", r"\1 <region>", data["conversations"][0]["value"])
+                else:
+                    first_path = os.path.join("data/DINO_segmentation_results", f'{data["id"]}_segmentation.jpg')
+                    second_path = os.path.join("data/YOLO_SAM_segmentation_results", f'{data["id"]}_safety_segmentation.png')
+                    data["regional_image"] = first_path if os.path.exists(first_path) else second_path
+                    data["conversations"][0]["value"] = re.sub(r"(Focus on objects)", r"\1 <region>", data["conversations"][0]["value"])
+                    
+        # for data in self.list_data_dict:
+        #     if self.add_region_token:
+        #         first_path = os.path.join("data/DINO_segmentation_results", f'{data["id"]}_segmentation.jpg')
+        #         second_path = os.path.join("data/YOLO_SAM_segmentation_results", f'{data["id"]}_safety_segmentation.png')
+        #         data["regional_image"] = first_path if os.path.exists(first_path) else second_path
+        #     else:
+        #         data["regional_image"] = None 
+        #     if ("general" in data["id"]) or ("suggestion" in data["id"]):
+        #         data["conversations"][0]["value"] = re.sub(r"(Focus on objects)", r"\1 <region>", data["conversations"][0]["value"])
+        #     elif "regional" in data["id"]:
+        #         data["conversations"][0]["value"] = re.sub(r"(describe the object)", r"\1 <region>", data["conversations"][0]["value"])
     
     def _add_region_prompt(self):
         processor, groundingdino_model, device = load_groundingdino_model()
         print("We first conduct segmentation")
+        # load for getting pre-crop info
+        STORING_INFO_REGION_PATH = "data/regional_segmentation/regional_coord.json"
+        coords_region = None
+        if os.path.exists(STORING_INFO_REGION_PATH):
+            with open(STORING_INFO_REGION_PATH, 'r') as f:
+                coords_region = json.load(f)
+        else:
+            coords_region_result = {}
+        
+        coords_gen_sug = None
+        STORING_INFO_GEN_SUG_PATH = "data/YOLO_SAM_segmentation_results/regional_coord.json"
+        if os.path.exists(STORING_INFO_GEN_SUG_PATH):
+            with open(STORING_INFO_GEN_SUG_PATH, 'r') as f:
+                coords_gen_sug = json.load(f)
+        else:
+            coords_gen_sug_result = {}
+        
         for data in tqdm(self.list_data_dict):
             img_path = os.path.join(self.data_args.image_folder, data["image"])
-            image = Image.open(img_path).convert('RGB')
             
-            boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
-            if len(boxes) == 0:
-                continue
-            result_dict = defaultdict(list)
-            for bbox, label in zip(boxes, labels):
-                result_dict[label].append(bbox.astype(int).tolist())
-            result_dict = dict(result_dict)
-            result_text = ""
-            for key in result_dict:
-                result_text += f"{key}: {result_dict[key]} \n"
-            appending_prompt = f'''
-            You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]
-            {result_text}
-            '''
+            appending_prompt = ''
+            image = Image.open(img_path).convert('RGB')
+            if  "regional" in data["id"]:
+                # get the coordination
+                if not coords_region:
+                    crop_result = crop(image_path=img_path)
+                    coordination = crop_result[1] if crop_result else None
+                else:
+                    coordination = coords_region[data["id"]] if data["id"] in coords_region else None
+                
+                if coordination is not None:
+                    coordination = [(ele/image.width if i%2 == 0 else ele/image.height) for i, ele in enumerate(coordination)]
+                    assert min(coordination) >=0 and max(coordination) <= 1
+                    appending_prompt = f'''
+                    You have to first examine whether there is a red bounding box (x_min, y_min, x_max, y_max): {coordination}
+                    If it is, just stay focus on the object inside the bounding box
+                    '''
+                    
+                    # store the coords
+                    if not coords_region:
+                        coords_region_result[data["id"]] = crop_result[1]
+            else:
+                if not coords_gen_sug:
+                    boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
+                    if len(boxes) == 0:
+                        continue
+                    result_dict = defaultdict(list)
+                    for bbox, label in zip(boxes, labels):
+                        bbox = [(ele/image.width if i%2 == 0 else ele/image.height) for i, ele in enumerate(bbox.tolist())]
+                        result_dict[label].append(bbox)
+                    result_dict = dict(result_dict)
+                    result_text = ""
+                    for key in result_dict:
+                        result_text += f"{key}: {result_dict[key]} \n"
+                    coords_gen_sug_result[data["id"]] = result_text
+                else:
+                    if data["id"] not in coords_gen_sug:
+                        continue
+                    result_text = coords_gen_sug[data["id"]]
+                appending_prompt = f'''
+                You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]
+                {result_text}
+                '''
+                
             data["conversations"][0]["value"] += appending_prompt
             torch.cuda.empty_cache()
-    
+        
+        # store the info for preprocessing, avoid re-execute again
+        if not coords_region:
+            with open(STORING_INFO_REGION_PATH, 'w') as f:
+                json.dump(coords_region_result, f, indent=4)
+        if not coords_gen_sug:
+            with open(STORING_INFO_GEN_SUG_PATH, 'w') as f:
+                json.dump(coords_gen_sug_result, f, indent=4)
+        
     def __len__(self):
         return len(self.list_data_dict)
 
@@ -758,7 +853,8 @@ class LazySupervisedDataset(Dataset):
             image_folder = self.data_args.image_folder
             processor = self.data_args.image_processor
             image = Image.open(os.path.join(image_folder, image_file)).convert('RGB')
-            if self.add_region_token:
+            regional_image = None 
+            if self.add_region_token and self.list_data_dict[i]['regional_image']:
                 regional_image_path = self.list_data_dict[i]['regional_image']
                 regional_image = Image.open(regional_image_path).convert('RGB')
             if self.data_args.image_aspect_ratio == 'pad':
@@ -776,7 +872,7 @@ class LazySupervisedDataset(Dataset):
                         return result
                 image = expand2square(image, tuple(int(x*255) for x in processor.image_mean))
                 image = processor.preprocess(image, return_tensors='pt')['pixel_values'][0]
-                if self.add_region_token:
+                if self.add_region_token and self.list_data_dict[i]['regional_image']:
                     regional_image  = expand2square(regional_image, tuple(int(x*255) for x in processor.image_mean))
                     regional_image = processor.preprocess(regional_image, return_tensors='pt')['pixel_values'][0]
             else:
@@ -868,8 +964,11 @@ def train(attn_implementation=None):
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    
+    # choices
     add_region_token = model_args.add_region_token
     add_region_prompt =  model_args.add_region_prompt
+    
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
 

@@ -15,14 +15,14 @@ python3 training.py \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_token \
-    --num_train_epochs 3 \
-    --per_device_train_batch_size 4 \
+    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_prompt \
+    --num_train_epochs 2 \
+    --per_device_train_batch_size 8 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 500 \
+    --save_steps 1000 \
     --save_total_limit 1 \
     --learning_rate 2e-4 \
     --weight_decay 0. \
@@ -35,4 +35,4 @@ python3 training.py \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb \
-    --add_region_token True
+    --add_region_prompt True \

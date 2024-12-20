@@ -28,7 +28,7 @@ def arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--max_output_tokens", type=int, default=300)
-    parser.add_argument("--few_shot", type=str, default="few_shot")
+    parser.add_argument("--few_shot", type=str, default="reference/few_shot")
     parser.add_argument("--prediction", type=str, default=None)
     parser.add_argument("--dataset_name", type=str, default="ntudlcv/dlcv_2024_final1")
     parser.add_argument("--split", type=str, default="val")
