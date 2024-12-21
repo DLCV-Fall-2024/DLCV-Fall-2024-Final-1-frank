@@ -120,11 +120,11 @@
 
 # Results
 
-| Name | Add Segmentation | Training Epochs | Training Scripts | Pre-trained Weights / Download scripts | Prediction Scripts(Val)|Prediction Scripts(Test)| Score(Test) |
-|-----|-----|--------------------|-----|--|-----|---------|----|
-|Finetune LoRA only|❌|3|```TBD```|✅ (Link)[]/ |```TBD```|```TBD``` |3.963|
-|Finetune LoRA only|❌|5|```TBD```|✅ (Link)[]/ |```TBD```|```TBD``` |4.064|
-|Add Image Token   |✅(Token)|3|```TBD```|✅ (Link)[]/ |```TBD```|```TBD``` |3.92|
+|Strategy|Segmentation|Depth Map|Training Epochs|Score(Test)|
+|-----|-----|-------|-----|------|
+|Finetune LoRA only|❌|❌|3|3.963|
+|Finetune LoRA only|❌|❌|5|4.064|
+|Add Image Token   |✅(Token)|❌|3|3.92|
 
 
 # Supplement
