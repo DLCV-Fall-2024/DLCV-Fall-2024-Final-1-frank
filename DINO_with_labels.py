@@ -83,16 +83,16 @@ def calculate_depth_for_boxes(depth_map, boxes):
         print(f"Box: {box}, Avg intensity: {avg_intensity:.2f}")
 
         # Define thresholds based on intensity
-        if avg_intensity < 51:  # 0-50 intensity
-            depth_category = "immediate"
-        elif avg_intensity < 102:  # 51-101 intensity
-            depth_category = "short distance"
-        elif avg_intensity < 153:  # 102-152 intensity
-            depth_category = "mid length"
-        elif avg_intensity < 204:  # 153-203 intensity
-            depth_category = "longer distance"
-        else:  # 204-255 intensity
+        if avg_intensity < 51:  # 0-50
             depth_category = "faraway"
+        elif avg_intensity < 102:  # 51-101
+            depth_category = "longer distance"
+        elif avg_intensity < 153:  # 102-152
+            depth_category = "mid length"
+        elif avg_intensity < 204:  # 153-203
+            depth_category = "short distance"
+        else:  # 204-255
+            depth_category = "immediate"
 
         print(f"Depth category: {depth_category}")
         depth_results.append({"depth_category": depth_category, "avg_intensity": avg_intensity})

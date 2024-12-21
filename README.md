@@ -36,7 +36,7 @@ Then, run the following command for the yolo training:
 
 * the resulted model weight will be stored in ./runs/detect/train/weights/best.pt
 
-Finally, to inference themodel and generating desired output for the regional task, run the following command:
+Finally, to inference the model and generate desired outputs for the regional task, run the following command:
 
     python3 inference.py
 
@@ -123,14 +123,29 @@ Finally, to inference themodel and generating desired output for the regional ta
 ### Segmentation by YOLOv8x + SAM 
 [Dataset Link (3.34 GB)](https://drive.google.com/file/d/1cZE7crqzBCXlTS4TK-MCQihlSs1e1Kja/view?usp=sharing)
 
+    gdown "https://drive.google.com/uc?id=1cZE7crqzBCXlTS4TK-MCQihlSs1e1Kja"
+    
 ### Segmentation by Grounding DINO + SAM
 [Dataset Link (581.8 MB)](https://drive.google.com/file/d/1pzO8zgHq5im8Ae2yqu77YeYeZDFTTFFA/view?usp=sharing)
+
+    gdown https://drive.google.com/uc?id=1pzO8zgHq5im8Ae2yqu77YeYeZDFTTFFA
 
 ### Grounding DINO + Depth anythings v2 with multiple detection boxes (general + regional) images only!
 [Dataset Link (3.37 GB)](https://drive.google.com/file/d/1D6sUu0TDGfW8euHuYhm5pd-4MvJtARlD/view?usp=sharing)
 
+    gdown "https://drive.google.com/uc?id=1D6sUu0TDGfW8euHuYhm5pd-4MvJtARlD"
+
 ### Grounding DINO + Depth anythings v2 with multiple detection boxes (general + regional) informational json files only!
 [Dataset Link (24.2 MB)](https://drive.google.com/file/d/1aR2sZ5m40xXG8XCBq4TIFwEiF6cyE-4l/view?usp=sharing)
 
+    gdown "https://drive.google.com/uc?id=1aR2sZ5m40xXG8XCBq4TIFwEiF6cyE-4l"
+
 ### Croped results using Grounding DINO's images and json files (general + regional)
 [Dataset Link (1012.2 MB)](https://drive.google.com/file/d/1YCz8eTSbEHgFMKFQkx5WsAXIhFPj4CrN/view?usp=sharing)
+
+    gdown "https://drive.google.com/uc?id=1YCz8eTSbEHgFMKFQkx5WsAXIhFPj4CrN"
+
+### Regional cropped-results using trained-YOLOv8n (images and json files)
+[Dataset Link (217.6 MB)](https://drive.google.com/file/d/1w4xNBoO1wB57qBnb4ACnE_jcbbvf9ICK/view?usp=sharing)
+
+    gdown "https://drive.google.com/uc?id=1w4xNBoO1wB57qBnb4ACnE_jcbbvf9ICK"
