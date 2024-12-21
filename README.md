@@ -120,10 +120,11 @@
 
 # Results
 
-| Name | Add Segmentation | Training Epochs | Training Scripts | Pre-trained Weights / Download scripts | Prediction Scripts(Val)|Prediction Scripts(Test)|  Score(Val) | Score(Test) |
+| Name | Add Segmentation | Training Epochs | Training Scripts | Pre-trained Weights / Download scripts | Prediction Scripts(Val)|Prediction Scripts(Test)| Score(Test) |
 |-----|-----|--------------------|-----|--|-----|---------|----|--|
-|Only Training with LoRA|❌|3|```scripts/llava-v1.5-7b-lora/finetune.sh```|✅ (Link)[]/ |```scripts/llava-v1.5-7b-lora/predict_val.sh```|```scripts/llava-v1.5-7b-lora/predict_test.sh``` |?|4.117|
-|Only Training with LoRA|❌|5|-|-|-|-|?|2.881|
+|Finetune LoRA only|❌|3|```TBD```|✅ (Link)[]/ |```TBD```|```TBD``` |3.963|
+|Finetune LoRA only|❌|5|```TBD```|✅ (Link)[]/ |```TBD```|```TBD``` |4.064|
+|Add Image Token   |✅(Token)|3|```TBD```|✅ (Link)[]/ |```TBD```|```TBD``` |3.92|
 
 
 # Supplement
