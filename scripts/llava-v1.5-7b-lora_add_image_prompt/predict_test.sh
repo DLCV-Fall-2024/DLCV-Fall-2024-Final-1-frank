@@ -6,4 +6,4 @@ python3 predict.py \
 --question-file data/test/annotation.json \
 --image-folder data/test/images \
 --answers-file results/llava-v1.5-7b-lora_add_image_prompt/submission.json \
---add_region_prompt True
+--add_region_prompt 

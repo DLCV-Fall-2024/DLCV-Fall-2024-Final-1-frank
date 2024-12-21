@@ -376,7 +376,8 @@ def crop(image_path):
                 cts.append(ct)
         except Exception as e:
             break
-
+    if not cts:
+        return None
     approx = max(cts, key=cv2.contourArea)
 
     # [x, y], [a, b], angle = cv2.fitEllipse(ct)

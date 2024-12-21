@@ -10,10 +10,6 @@ from segment_anything import sam_model_registry, SamPredictor
 import torchvision
 from torchvision.ops import nms
 
-# Define directories
-SEGMENTATION_OUTPUT_DIR = "DINO_segmentation_results"
-os.makedirs(SEGMENTATION_OUTPUT_DIR, exist_ok=True)
-
 def create_dataloader(dataset, batch_size=16):
     return DataLoader(dataset, batch_size=batch_size, num_workers=4, pin_memory=True)
 
@@ -32,7 +28,7 @@ def load_groundingdino_model():
 
 # Load SAM model
 def load_sam_model():
-    sam_checkpoint = "models/sam_vit_h_4b8939.pth"  
+    sam_checkpoint = "./checkpoints/SAM/sam_vit_h_4b8939.pth"  
     model_type = "vit_h"  # Choose model type: vit_h, vit_l, vit_b
     sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
     predictor = SamPredictor(sam)
@@ -105,7 +101,35 @@ def process_and_save_segmentation(image, image_id, processor, groundingdino_mode
     Image.fromarray(overlayed_image).save(save_path)
     print(f"Saved segmentation result for image ID: {image_id} at {save_path}")
 
+def process_but_no_save(image, image_id, processor, groundingdino_model, device, sam_predictor):
+    image_rgb = np.array(image) 
+
+    # Get bounding boxes and labels from GroundingDINO
+    boxes, scores, labels = get_bounding_boxes(image_rgb, processor, groundingdino_model, device)
+
+    # Skip processing if no boxes are detected
+    if len(boxes) == 0:
+        print(f"No objects detected in image ID: {image_id}")
+        return None 
+
+    # Get segmentation masks from SAM
+    masks = get_segmentation_masks(image_rgb, boxes, sam_predictor)
+
+    # Overlay segmentation on the original image
+    overlayed_image = overlay_segmentation_on_image(image_rgb, masks)
+
+    return Image.fromarray(overlayed_image)
+
+    # # Save the overlayed segmentation result in RGB format
+    # save_path = os.path.join(output_dir, f"{image_id}_segmentation.jpg")
+    # Image.fromarray(overlayed_image).save(save_path)
+    # print(f"Saved segmentation result for image ID: {image_id} at {save_path}")
+
 if __name__ == "__main__":
+    # Define directories
+    SEGMENTATION_OUTPUT_DIR = "DINO_segmentation_results"
+    os.makedirs(SEGMENTATION_OUTPUT_DIR, exist_ok=True)
+
     # Define dataset and models
     dataset = load_coda_dataset(split="train")
     processor, groundingdino_model, device = load_groundingdino_model()

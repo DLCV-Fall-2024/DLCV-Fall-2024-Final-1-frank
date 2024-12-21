@@ -35,4 +35,4 @@ python3 training.py \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb \
-    --add_region_token True
+    --add_region_token 
