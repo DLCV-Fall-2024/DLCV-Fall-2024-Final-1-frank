@@ -156,7 +156,7 @@ if __name__ == "__main__":
     sam_predictor = load_sam_model()
     pipe = load_stable_diffusion()
 
-    prompt = "A car, or a truck, or a motorcycle, or a bicycle that fits the scene, high quality, detailed"
+    prompt = "A vehicle that fits the scene, high quality, detailed"
 
     for data in dataset:
         image = data["image"] 

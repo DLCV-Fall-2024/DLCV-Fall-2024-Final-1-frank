@@ -42,6 +42,10 @@ Finally, to inference the model and generate desired outputs for the regional ta
 
 * the results will be saved in ./regional_results/
 
+* (updated 113/12/23) the inference code is now combined with a trained vision transformer, where the output json files will also contain the corresponding classification results of the bounding box. (totally 43 classees defined in the **categories.json** file)
+
+* to train the aforementioned ViT, please refer to the python file: **vision_finetune.py**
+
 ### Grounding DINO + Depth Anything with detected labels 
 
     python3 DINO_with_labels.py
@@ -145,7 +149,15 @@ Finally, to inference the model and generate desired outputs for the regional ta
 
     gdown "https://drive.google.com/uc?id=1YCz8eTSbEHgFMKFQkx5WsAXIhFPj4CrN"
 
-### Regional cropped-results using trained-YOLOv8n (images and json files)
-[Dataset Link (217.6 MB)](https://drive.google.com/file/d/1w4xNBoO1wB57qBnb4ACnE_jcbbvf9ICK/view?usp=sharing)
+### Regional cropped-results using trained-YOLOv8n (images and json files) (updated)
+[Dataset Link (208.2 MB)](https://drive.google.com/file/d/1rI73YH4LtIPOL3Jz3R49JaWZfNRE2_ZU/view?usp=sharing)
 
-    gdown "https://drive.google.com/uc?id=1w4xNBoO1wB57qBnb4ACnE_jcbbvf9ICK"
+    gdown "https://drive.google.com/uc?id=1rI73YH4LtIPOL3Jz3R49JaWZfNRE2_ZU"
+
+
+## Download model weight
+
+### vit_finetune.pth (for regional object classification inside the bounding box)
+[Model Link (1.13 GB)](https://drive.google.com/file/d/1pjSnyWQlFqR1jNB5ysroTzcRwpP6oSz8/view?usp=sharing)
+
+    gdown "https://drive.google.com/uc?id=1pjSnyWQlFqR1jNB5ysroTzcRwpP6oSz8"
