@@ -46,6 +46,8 @@ Finally, to inference the model and generate desired outputs for the regional ta
 
 * to train the aforementioned ViT, please refer to the python file: **vision_finetune.py**
 
+* the fine-tuned ViT model weight can be downloaded at [here](#1).
+
 ### Grounding DINO + Depth Anything with detected labels 
 
     python3 DINO_with_labels.py
@@ -157,7 +159,8 @@ Finally, to inference the model and generate desired outputs for the regional ta
 
 ## Download model weight
 
-### vit_finetune.pth (for regional object classification inside the bounding box)
+<h3 id="1">vit_finetune.pth (for regional object classification inside the bounding box)</h3>
+
 [Model Link (1.13 GB)](https://drive.google.com/file/d/1pjSnyWQlFqR1jNB5ysroTzcRwpP6oSz8/view?usp=sharing)
 
     gdown "https://drive.google.com/uc?id=1pjSnyWQlFqR1jNB5ysroTzcRwpP6oSz8"
