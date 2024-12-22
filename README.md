@@ -120,12 +120,12 @@
 
 # Results
 
-|Strategy|Segmentation|Depth Map|Training Epochs|Total Score(Test)|Blue_3|General|Regional|Suggestion|LLM_Judge|
+|Strategy|Segmentation|Depth Map|Training Epochs|Blue_3|General|Regional|Suggestion|LLM_Judge|Total Score|
 |-----|-----|-------|-----|------|---|---|---|---|---|
-|Finetune LoRA only|❌|❌|3|3.963|0.346|4.833|4.873|4.897|4.868|
-|Finetune LoRA only|❌|❌|5|4.064|0.339|5.693|4.843|4/996|4.064|
-|Add Seg. Token   |✅(Token)|❌|3|3.92|0.438|4.920|4.873|4.577|4.790|
-|Add Seg. Prompt  |✅(Prompt)|❌|3|4.087|0.356|5.533|5.123|4.403|4.087|
+|Finetune LoRA only|❌|❌|3|0.346|4.833|4.873|4.897|4.868|3.963|
+|Finetune LoRA only|❌|❌|5|0.339|5.693|4.843|4.450|4.996|4.064|
+|Add Seg. Token   |✅(Token)|❌|3|0.438|4.920|4.873|4.577|4.790|3.92|
+|Add Seg. Prompt  |✅(Prompt)|❌|3|0.356|5.533|5.123|4.403|5.020|4.087|
 
 
 # Supplement
