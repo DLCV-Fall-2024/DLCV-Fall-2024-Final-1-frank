@@ -122,13 +122,13 @@
 
 |Strategy|Segmentation|Depth Map|RAG|Training Epochs|Blue_3|General|Regional|Suggestion|LLM_Judge|Total Score|
 |-----|-----|-------|----|----|------|---|---|---|---|---|
-|Finetune LoRA only|❌|❌|❌|3|0.346|4.833|4.873|4.897|4.868|3.963|
-|Finetune LoRA only|❌|❌|❌|5|0.339|5.693|4.843|4.450|4.996|4.064|
-|Finetune LoRA only|❌|❌|❌|6|0.337|4.753|4.660|4.917|4.777|3.889|
-|Finetune LoRA only|❌|❌|✅|3|-|-|-|-|-|-|
-|Add Seg. Token   |✅(Token)|❌|❌|3|0.438|4.920|4.873|4.577|4.790|3.92|
-|Add Seg. Prompt  |✅(Prompt)|❌|❌|3|0.356|5.533|5.123|4.403|5.020|4.087|
-|Add Seg. Prompt, Depth|✅(Prompt)|✅(Prompt)|❌|2|-|-|-|-|-|-|
+|Finetune LoRA only         |❌        |❌|❌|3|0.346|4.833|4.873|4.897|4.868|3.963|
+|Finetune LoRA only         |❌        |❌|❌|5|0.339|5.693|4.843|4.450|4.996|4.064|
+|Finetune LoRA only         |❌        |❌|❌|6|0.337|4.753|4.660|4.917|4.777|3.889|
+|Finetune LoRA only         |❌        |❌|✅|6|0.645|3.043|3.907|4.390|3.780|3.153|
+|Add Seg. Token             |✅(Token) |❌|❌|3|0.438|4.920|4.873|4.577|4.790|3.92|
+|Add Seg. Prompt            |✅(Prompt)|❌|❌|3|0.356|5.533|5.123|4.403|5.020|4.087|
+|Add Seg. Prompt, Depth     |✅(Prompt)|✅|❌|2|0.414|4.447|4.820|4.693|4.653|3.806|
 
 # Supplement
 
