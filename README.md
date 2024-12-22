@@ -124,7 +124,8 @@
 |-----|-----|-------|-----|------|
 |Finetune LoRA only|❌|❌|3|3.963|
 |Finetune LoRA only|❌|❌|5|4.064|
-|Add Image Token   |✅(Token)|❌|3|3.92|
+|Add Seg. Token   |✅(Token)|❌|3|3.92|
+|Add Seg. Prompt  |✅(Prompt)|❌|3|4.087|
 
 
 # Supplement

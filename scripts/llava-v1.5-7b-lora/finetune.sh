@@ -15,9 +15,6 @@ python3 training.py \
     --image_aspect_ratio pad \
     --group_by_modality_length True \
     --bf16 True \
-    --output_dir ./checkpoints/llava-v1.5-7b-lora \
-    --num_train_epochs 3 \
-    --per_device_train_batch_size 8 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 1 \
     --evaluation_strategy "no" \
@@ -34,4 +31,7 @@ python3 training.py \
     --gradient_checkpointing True \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
-    --report_to wandb
+    --report_to wandb \
+    --num_train_epochs 3 \
+    --per_device_train_batch_size 8 \
+    --output_dir ./checkpoints/llava-v1.5-7b-lora \
