@@ -788,12 +788,14 @@ class LazySupervisedDataset(Dataset):
                 label = info["predicted_label"]
                 appending_prompt = f"You could only focus on the following object: \n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category}"
             elif f'{data["id"]}_detections.json' in os.listdir(GEN_SUG_DIR):
+                appending_prompt = 'You could only focus on the following objects:\n'
                 with open(os.path.join(GEN_SUG_DIR, f'{data["id"]}_detections.json'), 'r') as f:
-                    info = json.load(f)
-                bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
-                depth_category = info["depth_category"]["depth_category"]
-                label = info["class"]
-                appending_prompt = f"You could only focus on the following object: \n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category}"
+                    infos = json.load(f)
+                for info in infos:
+                    bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
+                    depth_category = info["depth_category"]["depth_category"]
+                    label = info["class"]
+                    appending_prompt += f"\n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category} \n"
                 # get the coordination
                 # if not coords_region:
                 #     crop_result = crop(image_path=img_path)
