@@ -787,7 +787,7 @@ class LazySupervisedDataset(Dataset):
                 depth_category = info["depth_category"]
                 label = info["predicted_label"]
                 appending_prompt = f"You could only focus on the following object: \n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category}"
-            elif data["id"] in os.path.exists(GEN_SUG_DIR):
+            elif f'{data["id"]}_detections.json' in os.listdir(GEN_SUG_DIR):
                 with open(os.path.join(GEN_SUG_DIR, f'{data["id"]}_detections.json'), 'r') as f:
                     info = json.load(f)
                 bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
@@ -840,12 +840,12 @@ class LazySupervisedDataset(Dataset):
             torch.cuda.empty_cache()
         
         # store the info for preprocessing, avoid re-execute again
-        if not coords_region:
-            with open(STORING_INFO_REGION_PATH, 'w') as f:
-                json.dump(coords_region_result, f, indent=4)
-        if not coords_gen_sug:
-            with open(STORING_INFO_GEN_SUG_PATH, 'w') as f:
-                json.dump(coords_gen_sug_result, f, indent=4)
+        # if not coords_region:
+        #     with open(STORING_INFO_REGION_PATH, 'w') as f:
+        #         json.dump(coords_region_result, f, indent=4)
+        # if not coords_gen_sug:
+        #     with open(STORING_INFO_GEN_SUG_PATH, 'w') as f:
+        #         json.dump(coords_gen_sug_result, f, indent=4)
     
     def _add_region_depth_prompt(self):
         with open(os.path.join("data/DINO_with_depth_map","regional_coord.json"), 'r') as f:
