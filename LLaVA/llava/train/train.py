@@ -780,7 +780,7 @@ class LazySupervisedDataset(Dataset):
             
             REGIONAL_DIR = 'data/regional_results'
             GEN_SUG_DIR = 'data/DINO_with_information_results'
-            if  "regional" in data["id"]:
+            if  "regional" in data["id"] and f'{data["id"]}_info.json' in os.listdir(REGIONAL_DIR):
                 with open(os.path.join(REGIONAL_DIR, f'{data["id"]}_info.json'), 'r') as f:
                     info = json.load(f)
                 bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
