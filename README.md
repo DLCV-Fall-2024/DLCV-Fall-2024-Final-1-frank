@@ -146,6 +146,11 @@ Finally, to inference the model and generate desired outputs for the regional ta
 
     gdown "https://drive.google.com/uc?id=1aR2sZ5m40xXG8XCBq4TIFwEiF6cyE-4l"
 
+### Grounding DINO + Depth anythings v2 with multiple detection boxes (general + suggestion) images + information json files
+[Dataset Link (2.11 GB)](https://drive.google.com/file/d/1i3N57RsCXXKZeHWqf8B5lzBs-pncG0oN/view?usp=sharing)
+
+    gdown "https://drive.google.com/uc?id=1i3N57RsCXXKZeHWqf8B5lzBs-pncG0oN"
+
 ### Croped results using Grounding DINO's images and json files (general + regional)
 [Dataset Link (1012.2 MB)](https://drive.google.com/file/d/1YCz8eTSbEHgFMKFQkx5WsAXIhFPj4CrN/view?usp=sharing)
 
