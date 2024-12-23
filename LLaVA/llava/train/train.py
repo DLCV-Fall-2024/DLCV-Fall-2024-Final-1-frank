@@ -777,55 +777,64 @@ class LazySupervisedDataset(Dataset):
             img_path = os.path.join(self.data_args.image_folder, data["image"])
             image = Image.open(img_path).convert('RGB')
             appending_prompt = ''
+            
+            REGIONAL_DIR = 'data/regional_results'
+            GEN_SUG_DIR = 'data/DINO_with_information_results'
             if  "regional" in data["id"]:
-                # REGIONAL_DIR = 'data/regional_results'
-                # with open(os.path.join(REGIONAL_DIR, f'{data["id"]}_info.json'), 'r') as f:
-                #     info = json.load(f)
-                # bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
-                # depth_category = info["depth_category"]
-                # label = info["predicted_label"]
-                # appending_prompt = f"You could only focus on the following object: \n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category}"
+                with open(os.path.join(REGIONAL_DIR, f'{data["id"]}_info.json'), 'r') as f:
+                    info = json.load(f)
+                bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
+                depth_category = info["depth_category"]
+                label = info["predicted_label"]
+                appending_prompt = f"You could only focus on the following object: \n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category}"
+            elif data["id"] in os.path.exists(GEN_SUG_DIR):
+                with open(os.path.join(GEN_SUG_DIR, f'{data["id"]}_detections.json'), 'r') as f:
+                    info = json.load(f)
+                bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
+                depth_category = info["depth_category"]["depth_category"]
+                label = info["class"]
+                appending_prompt = f"You could only focus on the following object: \n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category}"
                 # get the coordination
-                if not coords_region:
-                    crop_result = crop(image_path=img_path)
-                    coordination = crop_result[1] if crop_result else None
-                else:
-                    coordination = coords_region[data["id"]] if data["id"] in coords_region else None
+                # if not coords_region:
+                #     crop_result = crop(image_path=img_path)
+                #     coordination = crop_result[1] if crop_result else None
+                # else:
+                #     coordination = coords_region[data["id"]] if data["id"] in coords_region else None
                 
-                if coordination is not None:
-                    coordination = [(round(ele/image.width,4) if i%2 == 0 else round(ele/image.height,4)) for i, ele in enumerate(coordination)]
-                    assert min(coordination) >=0 and max(coordination) <= 1
-                    appending_prompt = f'''
-                    You have to first examine whether there is a red bounding box (x_min, y_min, x_max, y_max): {coordination}
-                    If it is, just stay focus on the object inside the bounding box
-                    '''
+                # if coordination is not None:
+                #     coordination = [(round(ele/image.width,4) if i%2 == 0 else round(ele/image.height,4)) for i, ele in enumerate(coordination)]
+                #     assert min(coordination) >=0 and max(coordination) <= 1
+                #     appending_prompt = f'''
+                #     You have to first examine whether there is a red bounding box (x_min, y_min, x_max, y_max): {coordination}
+                #     If it is, just stay focus on the object inside the bounding box
+                #     '''
                     
-                    # store the coords
-                    if not coords_region:
-                        coords_region_result[data["id"]] = crop_result[1]
+                #     # store the coords
+                #     if not coords_region:
+                #         coords_region_result[data["id"]] = crop_result[1]
                 
-            else:
-                if not coords_gen_sug:
-                    boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
-                    if len(boxes) == 0:
-                        continue
-                    result_dict = defaultdict(list)
-                    for bbox, label in zip(boxes, labels):
-                        bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(bbox.tolist())]
-                        result_dict[label].append(bbox)
-                    result_dict = dict(result_dict)
-                    result_text = ""
-                    for key in result_dict:
-                        result_text += f"{key}: {result_dict[key]} \n"
-                    coords_gen_sug_result[data["id"]] = result_text
-                else:
-                    if data["id"] not in coords_gen_sug:
-                        continue
-                    result_text = coords_gen_sug[data["id"]]
-                appending_prompt = f'''
-                You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]
-                {result_text}
-                '''
+            # else:
+            #     if not coords_gen_sug:
+            #         boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
+            #         if len(boxes) == 0:
+            #             continue
+            #         result_dict = defaultdict(list)
+            #         for bbox, label in zip(boxes, labels):
+            #             bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(bbox.tolist())]
+            #             result_dict[label].append(bbox)
+            #         result_dict = dict(result_dict)
+            #         result_text = ""
+            #         for key in result_dict:
+            #             result_text += f"{key}: {result_dict[key]} \n"
+            #         coords_gen_sug_result[data["id"]] = result_text
+            #     else:
+            #         if data["id"] not in coords_gen_sug:
+            #             continue
+            #         result_text = coords_gen_sug[data["id"]]
+            #     appending_prompt = f'''
+            #     You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]
+            #     {result_text}
+            #     '''
                 
             data["conversations"][0]["value"] += appending_prompt
             torch.cuda.empty_cache()
