@@ -21,7 +21,7 @@ import torch.nn as nn
 from .multimodal_encoder.builder import build_vision_tower
 from .multimodal_projector.builder import build_vision_projector
 
-from ..constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, REGION_TOKEN_INDEX
+from ..constants import IGNORE_INDEX, IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_PATCH_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, REGION_TOKEN_INDEX, DETECTION_TOKEN_INDEX
 
 from ..mm_utils import get_anyres_image_grid_shape
 
@@ -142,9 +142,39 @@ class LlavaMetaForCausalLM(ABC):
         image_features = self.get_model().mm_projector(image_features)
         return image_features
 
+    def get_detection_model(self):
+        from ultralytics import YOLO 
+        PATH = 'checkpoints/YOLO/yolov8x.pt'
+        model = YOLO(PATH).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+        return model
+        
+    def encode_detection(self, images):
+        import torchvision.transforms as transforms
+        import torch.nn as nn
+        detection_model = self.get_detection_model()
+        intermediate_features = {}
+        def get_features(name):
+            def hook(model, input, output):
+                intermediate_features[name] = output.detach()
+            return hook
+        target_layer = detection_model.model.model[22].cv3[0][2]
+        target_layer.register_forward_hook(get_features('conv2d_320_80'))
+        transform = transforms.Compose([
+            transforms.Resize((640, 640)),  # 根據模型要求調整大小
+        ])
+        img_tensors = transform(images).unsqueeze(0)
+        detection_model.model.eval()
+
+        with torch.no_grad():
+            outputs = detection_model.model(img_tensors.squeeze())
+        if 'conv2d_320_80' in intermediate_features:
+            features = intermediate_features['conv2d_320_80']
+            features = features.reshape(features.size(0), -1, 4096)
+        return features
+
     def prepare_inputs_labels_for_multimodal(
         self, input_ids, position_ids, attention_mask, past_key_values, labels,
-        images, regional_images, image_sizes=None
+        images, regional_images, add_detection_token, image_sizes=None
     ):
         vision_tower = self.get_vision_tower()
         if vision_tower is None or images is None or input_ids.shape[1] == 1:
@@ -200,11 +230,15 @@ class LlavaMetaForCausalLM(ABC):
                 raise ValueError(f"Unexpected mm_patch_merge_type: {self.config.mm_patch_merge_type}")
         else:
             image_features = self.encode_images(images)
+            splits = 1
+            if add_detection_token:
+                det_image_features = self.encode_detection(images)
+                splits += 1
             if regional_images is not None:
                 regional_image_features = self.encode_images(regional_images)
-                combined_features = torch.stack([image_features, regional_image_features], dim=1)
-                image_features = combined_features.view(-1, *image_features.shape[1:])
-
+                splits += 1
+                # combined_features = torch.stack([image_features, regional_image_features], dim=1)
+                # image_features = combined_features.view(-1, *image_features.shape[1:])
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
@@ -234,7 +268,7 @@ class LlavaMetaForCausalLM(ABC):
         new_labels = []
         cur_image_idx = 0
         for batch_idx, cur_input_ids in enumerate(input_ids):
-            num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum() + (cur_input_ids == REGION_TOKEN_INDEX).sum()
+            num_images = (cur_input_ids == IMAGE_TOKEN_INDEX).sum() # + (cur_input_ids == REGION_TOKEN_INDEX).sum() + (cur_input_ids == DETECTION_TOKEN_INDEX).sum()
             if num_images == 0:
                 cur_image_features = image_features[cur_image_idx]
                 cur_input_embeds_1 = self.get_model().embed_tokens(cur_input_ids)
@@ -244,9 +278,9 @@ class LlavaMetaForCausalLM(ABC):
                 cur_image_idx += 1
                 continue
 
-            image_token_indices = [-1] + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist() + torch.where(cur_input_ids == REGION_TOKEN_INDEX)[0].tolist() + [cur_input_ids.shape[0]]
-            # image_token_indices = [-1] + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist() + [cur_input_ids.shape[0]]
             
+            image_token_indices = [-1] + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist() + torch.where(cur_input_ids == REGION_TOKEN_INDEX)[0].tolist() + torch.where(cur_input_ids == DETECTION_TOKEN_INDEX)[0].tolist() + [cur_input_ids.shape[0]]
+            # image_token_indices = [-1] + torch.where(cur_input_ids == IMAGE_TOKEN_INDEX)[0].tolist() + [cur_input_ids.shape[0]]
             cur_input_ids_noim = []
             cur_labels = labels[batch_idx]
             cur_labels_noim = []
@@ -258,15 +292,35 @@ class LlavaMetaForCausalLM(ABC):
             cur_input_embeds_no_im = torch.split(cur_input_embeds, split_sizes, dim=0)
             cur_new_input_embeds = []
             cur_new_labels = []
-
+            
+            no_im_index = 0
             for i in range(num_images + 1):
-                cur_new_input_embeds.append(cur_input_embeds_no_im[i])
-                cur_new_labels.append(cur_labels_noim[i])
+                cur_new_input_embeds.append(cur_input_embeds_no_im[no_im_index])
+                cur_new_labels.append(cur_labels_noim[no_im_index])
                 if i < num_images:
-                    cur_image_features = image_features[cur_image_idx]
-                    cur_image_idx += 1
+                    cur_image_features = image_features[i]
                     cur_new_input_embeds.append(cur_image_features)
                     cur_new_labels.append(torch.full((cur_image_features.shape[0],), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype))
+                    no_im_index += 1
+                    
+                    if regional_images is not None:
+                        cur_new_input_embeds.append(cur_input_embeds_no_im[no_im_index])
+                        cur_new_labels.append(cur_labels_noim[no_im_index])
+                        cur_region_features = regional_image_features[i]
+                        
+                        cur_new_input_embeds.append(cur_region_features)
+                        cur_new_labels.append(torch.full((cur_region_features.shape[0],), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype))
+                        no_im_index += 1
+                        
+                    
+                    if add_detection_token:
+                        cur_new_input_embeds.append(cur_input_embeds_no_im[no_im_index])
+                        cur_new_labels.append(cur_labels_noim[no_im_index])
+                        cur_det_features = det_image_features[i]
+                        cur_new_input_embeds.append(cur_det_features)
+                        cur_new_labels.append(torch.full((cur_det_features.shape[0],), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype))
+                        no_im_index += 1
+                    # cur_image_idx += 1
 
             cur_new_input_embeds = [x.to(self.device) for x in cur_new_input_embeds]
 

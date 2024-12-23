@@ -74,6 +74,7 @@ class ModelArguments:
     add_region_token: Optional[bool] = field(default=False)
     add_region_prompt: Optional[bool] = field(default=False)
     add_region_depth_prompt: Optional[bool] = field(default=False)
+    add_detection_token: Optional[bool] = field(default=False)
 
 
 @dataclass
@@ -446,7 +447,8 @@ def preprocess_v1(
     # Tokenize conversations
 
     if has_image:
-        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_region_token=add_region_token) for prompt in conversations], dim=0)
+        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_region_token=add_region_token, add_detection_token=add_detection_token) for prompt in conversations], dim=0)
+
     else:
         input_ids = tokenizer(
             conversations,
@@ -478,8 +480,8 @@ def preprocess_v1(
             parts[0] += sep
 
             if has_image:
-                round_len = len(tokenizer_image_token(rou, tokenizer, add_region_token=add_region_token))
-                instruction_len = len(tokenizer_image_token(parts[0], tokenizer, add_region_token=add_region_token)) - 2
+                round_len = len(tokenizer_image_token(rou, tokenizer, add_region_token=add_region_token, add_detection_token=add_detection_token))
+                instruction_len = len(tokenizer_image_token(parts[0], tokenizer, add_region_token=add_region_token, add_detection_token=add_detection_token)) - 2
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
@@ -645,10 +647,10 @@ def preprocess(
         conversations.append(conversation)
     # tokenize conversations
     def get_tokenize_len(prompts):
-        return [len(tokenizer_image_token(prompt, tokenizer, add_region_token=add_region_token)) for prompt in prompts]
+        return [len(tokenizer_image_token(prompt, tokenizer, add_region_token=add_region_token, add_detection_token=add_detection_token)) for prompt in prompts]
 
     if has_image:
-        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_region_token=add_region_token) for prompt in conversations]
+        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_region_token=add_region_token, add_detection_token=add_detection_token) for prompt in conversations]
     else:
         conversations_tokenized = _tokenize_fn(conversations, tokenizer)
         input_ids = conversations_tokenized["input_ids"]
@@ -673,12 +675,13 @@ class LazySupervisedDataset(Dataset):
                  data_args: DataArguments, 
                  add_region_token: bool = False,
                  add_region_prompt: bool=False,
-                 add_region_depth_prompt: bool=False):
+                 add_region_depth_prompt: bool=False,
+                 add_detection_token: bool=False):
         super(LazySupervisedDataset, self).__init__()
         list_data_dict = json.load(open(data_path, "r"))
 
         rank0_print("Formatting inputs...Skip in lazy mode")
-        assert (not (add_region_token and add_region_prompt)), "You must choose only one!"
+        # assert (not (add_region_token and add_region_prompt)), "You must choose only one!"
         self.tokenizer = tokenizer
         self.list_data_dict = list_data_dict
         self.add_region_token = add_region_token
@@ -689,6 +692,8 @@ class LazySupervisedDataset(Dataset):
             self._add_region_prompt()
         if add_region_depth_prompt:
             self._add_region_depth_prompt()
+        if add_detection_token:
+            self._add_detection_token()
         
 
     def _add_img_path(self):
@@ -773,6 +778,13 @@ class LazySupervisedDataset(Dataset):
             image = Image.open(img_path).convert('RGB')
             appending_prompt = ''
             if  "regional" in data["id"]:
+                # REGIONAL_DIR = 'data/regional_results'
+                # with open(os.path.join(REGIONAL_DIR, f'{data["id"]}_info.json'), 'r') as f:
+                #     info = json.load(f)
+                # bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(info["box"])]
+                # depth_category = info["depth_category"]
+                # label = info["predicted_label"]
+                # appending_prompt = f"You could only focus on the following object: \n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category}"
                 # get the coordination
                 if not coords_region:
                     crop_result = crop(image_path=img_path)
@@ -791,6 +803,7 @@ class LazySupervisedDataset(Dataset):
                     # store the coords
                     if not coords_region:
                         coords_region_result[data["id"]] = crop_result[1]
+                
             else:
                 if not coords_gen_sug:
                     boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
@@ -841,11 +854,9 @@ class LazySupervisedDataset(Dataset):
                     for object_info in object_infos:
                         classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
                         box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-                        appending_prompt += f'''
-                        Object: {classification}
-                        Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} 
-                        Distance to our eco car: {depth}
-                        '''
+                        appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): \
+                            {','.join([str(ele) for ele in box])} \
+                                \n Distance to our eco car: {depth}'''
                 elif data["id"] in regional_bboxes_infos:
                     object_infos = infos[data["id"]]
                     single_box = regional_bboxes_infos[data["id"]]
@@ -871,6 +882,9 @@ class LazySupervisedDataset(Dataset):
                 '''
             data["conversations"][0]["value"] += appending_prompt
     
+    def _add_detection_token(self):
+        for data in self.list_data_dict:
+            data["conversations"][0]["value"] += "The feature of the labels and bounding boxes are in <detection> ."
     def __len__(self):
         return len(self.list_data_dict)
 
@@ -989,6 +1003,9 @@ class DataCollatorForSupervisedDataset(object):
             else:
                 batch['regional_images'] = regional_images
 
+        if add_detection_token:
+            batch["add_detection_token"] = True
+        
         return batch
 
 
@@ -1000,7 +1017,8 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
                                 data_args=data_args, 
                                 add_region_token=add_region_token,
                                 add_region_prompt=add_region_prompt,
-                                add_region_depth_prompt=add_region_depth_prompt)
+                                add_region_depth_prompt=add_region_depth_prompt,
+                                add_detection_token=add_detection_token)
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     return dict(train_dataset=train_dataset,
                 eval_dataset=None,
@@ -1009,7 +1027,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
 
 def train(attn_implementation=None):
     global local_rank
-    global add_region_token, add_region_prompt, add_region_depth_prompt
+    global add_region_token, add_region_prompt, add_region_depth_prompt, add_detection_token
 
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
@@ -1019,6 +1037,7 @@ def train(attn_implementation=None):
     add_region_token = model_args.add_region_token
     add_region_prompt =  model_args.add_region_prompt
     add_region_depth_prompt = model_args.add_region_depth_prompt
+    add_detection_token = model_args.add_detection_token
     
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))

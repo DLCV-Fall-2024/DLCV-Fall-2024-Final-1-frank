@@ -79,10 +79,7 @@ def eval_model(args):
                     coordination = crop_result[1]
                     coordination = [( round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(coordination)]
                     assert min(coordination) >=0 and max(coordination) <= 1
-                    appending_prompt = f'''
-                    You have to first examine whether there is a red bounding box (x_min, y_min, x_max, y_max): {coordination}
-                    If it is, just stay focus on the object inside the bounding box
-                    '''
+                    appending_prompt = f'''You have to first examine whether there is a red bounding box (x_min, y_min, x_max, y_max): {coordination} \n If it is, just stay focus on the object inside the bounding box'''
             else:
                 boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
                 if len(boxes) == 0:
@@ -94,10 +91,7 @@ def eval_model(args):
                 result_text = ""
                 for key in result_dict:
                     result_text += f"{key}: {result_dict[key]} \n"
-                appending_prompt = f'''
-                You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]
-                {result_text}
-                '''
+                appending_prompt = f'''You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]: \n"{result_text}'''
             qs += appending_prompt
             torch.cuda.empty_cache()
         if args.add_region_token:
@@ -143,11 +137,7 @@ def eval_model(args):
                     for object_info in object_infos:
                         classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
                         box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-                        appending_prompt += f'''
-                        Object: {classification}
-                        Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} 
-                        Distance to our eco car: {depth}
-                        '''
+                        appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
                 else:
                     crop_result = crop(img_path)
                     if crop_result:
@@ -156,20 +146,14 @@ def eval_model(args):
                             classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
                             if not ((box[2] < single_box[0]) or (box[0] > single_box[2]) or (box[3] < single_box[1]) or (box[1] > single_box[3])):
                                 box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-                                appending_prompt += f'''
-                                Object: {classification}
-                                Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} 
-                                Distance to our eco car: {depth}
-                                '''
+                                appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
                         appending_prompt = "\nHere is the important object you should focus on:\n" + appending_prompt if appending_prompt else ""
             else:
                 crop_result = crop(img_path)
                 if crop_result:
                     box = crop_result[1]
                     box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-                    appending_prompt = f'''
-                    You should stay focus on the object(x_min, y_min, x_max, y_max): {','.join(str(ele) for ele in box)}
-                    '''
+                    appending_prompt = f'''You should stay focus on the object(x_min, y_min, x_max, y_max): {','.join(str(ele) for ele in box)}'''
             qs += appending_prompt
                 
         cur_prompt = qs
@@ -183,7 +167,7 @@ def eval_model(args):
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
-        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt').unsqueeze(0).cuda()
+        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt', add_region_token=args.add_region_token, add_detection_token=args.add_detection_token).unsqueeze(0).cuda()
 
         image_tensor = process_images([image], image_processor, model.config)[0]
         if regional_img: 
@@ -201,6 +185,7 @@ def eval_model(args):
                 temperature=args.temperature,
                 top_p=args.top_p,
                 num_beams=args.num_beams,
+                add_detection_token = args.add_detection_token,
                 # no_repeat_ngram_size=3,
                 max_new_tokens=1024,
                 use_cache=True)
@@ -219,6 +204,7 @@ def eval_model(args):
         # print(idx, outputs)
         
         results[idx] = outputs
+        # print(outputs)
     # ans_file.close()
     with open(args.answers_file, 'w') as f:
         json.dump(results, f, indent=4) 
@@ -234,12 +220,15 @@ if __name__ == "__main__":
     parser.add_argument("--conv-mode", type=str, default="llava_v1")
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
-    parser.add_argument("--temperature", type=float, default=0.2)
-    parser.add_argument("--top_p", type=float, default=None)
-    parser.add_argument("--num_beams", type=int, default=1)
+    
+    parser.add_argument("--temperature", type=float, default=0)
+    parser.add_argument("--top_p", type=float, default=0.9)
+    parser.add_argument("--num_beams", type=int, default=3)
+    
     parser.add_argument('--add_region_token', action='store_true')
     parser.add_argument("--add_region_prompt", action='store_true')
     parser.add_argument("--add_region_depth_prompt", action='store_true')
+    parser.add_argument('--add_detection_token', action='store_true')
     args = parser.parse_args()
 
     eval_model(args)
