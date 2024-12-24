@@ -7,7 +7,7 @@ import ast
 import re
 
 from transformers import StoppingCriteria
-from .constants import IMAGE_TOKEN_INDEX, REGION_TOKEN_INDEX, DETECTION_TOKEN_INDEX
+from .constants import IMAGE_TOKEN_INDEX, REGION_TOKEN_INDEX, DETECTION_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_SEG_IMAGE_TOKEN, DEFAULT_DETECTION_TOKEN
 
 
 def select_best_resolution(original_size, possible_resolutions):
@@ -184,20 +184,20 @@ def process_images(images, image_processor, model_cfg):
 
 
 def tokenizer_image_token(prompt, tokenizer, image_token_index=IMAGE_TOKEN_INDEX, return_tensors=None, 
-                        region_token_index=REGION_TOKEN_INDEX, add_region_token=False,
+                        region_token_index=REGION_TOKEN_INDEX, add_seg_img_token=False,
                         detection_token_index=DETECTION_TOKEN_INDEX, add_detection_token=False):
     # prompt_chunks = [tokenizer(chunk).input_ids for chunk in prompt.split('<image>')]
-    chunks = re.split(r'(<image>|<region>|<detection>)', prompt)
-    prompt_chunks = [tokenizer(chunk).input_ids if chunk not in ['<image>', '<region>', '<detection>'] else chunk for chunk in chunks]
+    chunks = re.split(rf'({DEFAULT_IMAGE_TOKEN}|{DEFAULT_SEG_IMAGE_TOKEN}|{DEFAULT_DETECTION_TOKEN})', prompt)
+    prompt_chunks = [tokenizer(chunk).input_ids if chunk not in [DEFAULT_IMAGE_TOKEN, DEFAULT_SEG_IMAGE_TOKEN, DEFAULT_DETECTION_TOKEN] else chunk for chunk in chunks]
     
     def insert_separator(X):
         input_ids = []
         for chunk in X:
-            if chunk == '<image>':
+            if chunk == DEFAULT_IMAGE_TOKEN:
                 input_ids.append([image_token_index])
-            elif chunk == '<region>' and add_region_token:
+            elif chunk == DEFAULT_SEG_IMAGE_TOKEN and add_seg_img_token:
                 input_ids.append([region_token_index])
-            elif chunk == '<detection>' and add_detection_token:
+            elif chunk == DEFAULT_DETECTION_TOKEN and add_detection_token:
                 input_ids.append([detection_token_index])
             elif isinstance(chunk, list):  
                 input_ids.append(chunk)

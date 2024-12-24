@@ -1,7 +1,7 @@
 #!/bin/bash
 
 python3 training.py \
-    --lora_enable True --lora_r 128 --lora_alpha 256 --mm_projector_lr 2e-5 \
+    --lora_enable True --lora_r 8 --lora_alpha 8 --mm_projector_lr 2e-5 \
     --model_name_or_path lmsys/vicuna-7b-v1.5 \
     --version v1 \
     --data_path data/train/annotation.json \
@@ -32,8 +32,8 @@ python3 training.py \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb \
-    --add_region_token \
+    --add_seg_img_token \
     --add_detection_token \
-    --num_train_epochs 3 \
+    --num_train_epochs 1 \
     --per_device_train_batch_size 4 \
-    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_detection_token 
+    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_detection_token_low_rank

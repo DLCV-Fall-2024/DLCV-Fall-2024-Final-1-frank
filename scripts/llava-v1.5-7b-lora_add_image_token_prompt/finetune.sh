@@ -32,8 +32,8 @@ python3 training.py \
     --dataloader_num_workers 4 \
     --lazy_preprocess True \
     --report_to wandb \
-    --add_region_token \
-    --add_region_prompt \
-    --num_train_epochs 3 \
+    --add_seg_img_token \
+    --add_obj_info_prompt \
+    --num_train_epochs 1 \
     --per_device_train_batch_size 4 \
-    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_token_prompt
+    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_token_prompt_adjust

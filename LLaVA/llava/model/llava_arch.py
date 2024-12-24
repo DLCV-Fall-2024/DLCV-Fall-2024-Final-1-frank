@@ -166,15 +166,16 @@ class LlavaMetaForCausalLM(ABC):
         detection_model.model.eval()
 
         with torch.no_grad():
-            outputs = detection_model.model(img_tensors.squeeze())
+            img_tensors = img_tensors.to(torch.float32)
+            outputs = detection_model.model(img_tensors.squeeze(0))
         if 'conv2d_320_80' in intermediate_features:
             features = intermediate_features['conv2d_320_80']
             features = features.reshape(features.size(0), -1, 4096)
-        return features
+        return features.to(torch.half)
 
     def prepare_inputs_labels_for_multimodal(
         self, input_ids, position_ids, attention_mask, past_key_values, labels,
-        images, regional_images, add_detection_token, image_sizes=None
+        images, seg_images, add_detection_token, image_sizes=None
     ):
         vision_tower = self.get_vision_tower()
         if vision_tower is None or images is None or input_ids.shape[1] == 1:
@@ -234,11 +235,9 @@ class LlavaMetaForCausalLM(ABC):
             if add_detection_token:
                 det_image_features = self.encode_detection(images)
                 splits += 1
-            if regional_images is not None:
-                regional_image_features = self.encode_images(regional_images)
+            if seg_images is not None:
+                seg_image_features = self.encode_images(seg_images)
                 splits += 1
-                # combined_features = torch.stack([image_features, regional_image_features], dim=1)
-                # image_features = combined_features.view(-1, *image_features.shape[1:])
         # TODO: image start / end is not implemented here to support pretraining.
         if getattr(self.config, 'tune_mm_mlp_adapter', False) and getattr(self.config, 'mm_use_im_start_end', False):
             raise NotImplementedError
@@ -303,10 +302,10 @@ class LlavaMetaForCausalLM(ABC):
                     cur_new_labels.append(torch.full((cur_image_features.shape[0],), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype))
                     no_im_index += 1
                     
-                    if regional_images is not None:
+                    if seg_images is not None:
                         cur_new_input_embeds.append(cur_input_embeds_no_im[no_im_index])
                         cur_new_labels.append(cur_labels_noim[no_im_index])
-                        cur_region_features = regional_image_features[i]
+                        cur_region_features = seg_image_features[i]
                         
                         cur_new_input_embeds.append(cur_region_features)
                         cur_new_labels.append(torch.full((cur_region_features.shape[0],), IGNORE_INDEX, device=cur_labels.device, dtype=cur_labels.dtype))
