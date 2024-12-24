@@ -3,13 +3,12 @@ import torch
 import os
 import json
 from tqdm import tqdm
-import shortuuid
 from collections import defaultdict
 import re
 import cv2
 import time
 
-from LLaVA.llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN
+from LLaVA.llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, DEFAULT_SEG_IMAGE_TOKEN
 from LLaVA.llava.conversation import conv_templates, SeparatorStyle
 from LLaVA.llava.model.builder import load_pretrained_model
 from LLaVA.llava.utils import disable_torch_init
@@ -22,7 +21,8 @@ import numpy as np
 from segmentation.DINO_seg import load_groundingdino_model, get_bounding_boxes, process_but_no_save, load_sam_model
 from segmentation.crop_regional import crop
 from segmentation.YOLO_seg import process_but_no_save_segmentation, load_detection_model
-from depth_map.DINO_with_labels import load_depth_anything_model, process_but_no_save_results
+from depth_map.DINO_with_labels import load_depth_anything_model, return_obj_infos
+from detection.vit_detection import return_red_box_info
 
 
 def split_list(lst, n):
@@ -35,7 +35,6 @@ def get_chunk(lst, n, k):
     chunks = split_list(lst, n)
     return chunks[k]
 
-
 def eval_model(args):
     # Model
     disable_torch_init()
@@ -43,18 +42,16 @@ def eval_model(args):
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name)
 
-    # questions = [json.loads(q) for q in open(os.path.expanduser(args.question_file), "r")]
     with open(args.question_file, 'r') as f:
         questions_test = json.load(f)
     questions = get_chunk(questions_test, args.num_chunks, args.chunk_idx)
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
-    # ans_file = open(answers_file, "w")
     
     # load for the segmentation module if needed
-    if args.add_region_prompt or args.add_region_token or args.add_region_depth_prompt:
+    if args.add_obj_info_prompt or args.add_seg_img_token:
         processor, groundingdino_model, device = load_groundingdino_model()
-    if args.add_region_token:
+    if args.add_seg_img_token:
         sam_predictor = load_sam_model()
         YOLO_detector = load_detection_model()
     
@@ -63,42 +60,43 @@ def eval_model(args):
         idx = line["id"]
         image_file = f"{line['id']}.png"
         qs = line["conversations"][0]["value"].replace("<image>", "")
+        qs = "\n\nYou are an experienced car driver, enable to point out all details need to be focused while driving. An image from the driver's seat of a ego car is given, corresponded to a question. You need to answer the question with your analysis from image.\n" + f"* Question\n\"{qs} \n"
         
         # get the image and the image weight and height
         img_path = os.path.join(args.image_folder, image_file)
         image = Image.open(os.path.join(args.image_folder, image_file)).convert('RGB')
         
-        regional_img = None 
+        seg_image = None 
         
         # for add region_prompt
-        if args.add_region_prompt:
+        if args.add_obj_info_prompt:
+            depth_model = load_depth_anything_model(device)
             appending_prompt = ''
             if  "regional" in idx:
-                crop_result = crop(image_path=img_path)
-                if crop_result is not None:
-                    coordination = crop_result[1]
-                    coordination = [( round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(coordination)]
-                    assert min(coordination) >=0 and max(coordination) <= 1
-                    appending_prompt = f'''You have to first examine whether there is a red bounding box (x_min, y_min, x_max, y_max): {coordination} \n If it is, just stay focus on the object inside the bounding box'''
+                red_box_info = return_red_box_info(image=image)["detection_information"]
+                if red_box_info is not None:
+                    coordinate = [( round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(red_box_info["box"])]
+                    assert min(coordinate) >=0 and max(coordinate) <= 1
+                    depth = red_box_info["depth_category"]
+                    label = red_box_info["predicted_label"]
+                    appending_prompt = f'\n You only need to focus on the object: \n * object: {label} \n * distance: {depth} \n * coordinate: {coordinate}'
             else:
-                boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
-                if len(boxes) == 0:
-                    continue
-                result_dict = defaultdict(list)
-                for bbox, label in zip(boxes, labels):
-                    result_dict[label].append([( round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(bbox.astype(int).tolist())])
-                result_dict = dict(result_dict)
-                result_text = ""
-                for key in result_dict:
-                    result_text += f"{key}: {result_dict[key]} \n"
-                appending_prompt = f'''You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]: \n"{result_text}'''
+                object_infos = return_obj_infos(image, idx, processor, groundingdino_model, depth_model, device)
+                if object_infos:
+                    appending_prompt = f'\n You only need to focus on the object: \n'
+                    for object_info in object_infos:
+                        coordinate = [( round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(object_info["box"])]
+                        assert min(coordinate) >=0 and max(coordinate) <= 1
+                        depth = object_info["depth_category"]["depth_category"]
+                        label = object_info["class"]
+                        appending_prompt += '\n * object: {label} \n * distance: {depth} \n * coordinate: {coordinate}'
             qs += appending_prompt
             torch.cuda.empty_cache()
-        if args.add_region_token:
+        if args.add_seg_img_token:
             if "regional" in idx:
-                crop_result = crop(img_path)
+                crop_result = return_red_box_info(image=image)
                 if crop_result:
-                    regional_img = crop_result[0]
+                    seg_image = crop_result["segmented_image"]
                 else:
                     cv2_image = cv2.imread(img_path)
                     hsv = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2HSV)
@@ -120,58 +118,61 @@ def eval_model(args):
                         
                         mask_image = np.zeros_like(cv2_image)
                         mask_image[y:y+h, x:x+w] = cv2_image[y:y+h, x:x+w]
-                        regional_img = Image.fromarray(mask_image)
-                qs = re.sub(r"(describe the object)", r"\1 <region>", qs)
+                        seg_image = Image.fromarray(mask_image)
+                qs = re.sub(r"(describe the object)", rf"\1 {DEFAULT_SEG_IMAGE_TOKEN}", qs)
             else:
-                regional_img = process_but_no_save(image, idx, processor=processor, groundingdino_model=groundingdino_model, device=device, sam_predictor=sam_predictor)
-                if not regional_img:
-                    regional_img = process_but_no_save_segmentation(image=image, sam_predictor=sam_predictor, detection_model=YOLO_detector)
-                qs = re.sub(r"(Focus on objects)", r"\1 <region>", qs) 
-        if args.add_region_depth_prompt:
-            appending_prompt = ''
-            depth_model = load_depth_anything_model(device)
-            object_infos = process_but_no_save_results(image, idx, processor, groundingdino_model, depth_model, device)
-            if object_infos is not None:
-                if "regional" not in idx:
-                    appending_prompt = "\nHere are some important objects you should focus on:\n"
-                    for object_info in object_infos:
-                        classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
-                        box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-                        appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
-                else:
-                    crop_result = crop(img_path)
-                    if crop_result:
-                        single_box = crop_result[1]
-                        for object_info in object_infos:
-                            classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
-                            if not ((box[2] < single_box[0]) or (box[0] > single_box[2]) or (box[3] < single_box[1]) or (box[1] > single_box[3])):
-                                box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-                                appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
-                        appending_prompt = "\nHere is the important object you should focus on:\n" + appending_prompt if appending_prompt else ""
-            else:
-                crop_result = crop(img_path)
-                if crop_result:
-                    box = crop_result[1]
-                    box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-                    appending_prompt = f'''You should stay focus on the object(x_min, y_min, x_max, y_max): {','.join(str(ele) for ele in box)}'''
-            qs += appending_prompt
+                seg_image = process_but_no_save(image, idx, processor=processor, groundingdino_model=groundingdino_model, device=device, sam_predictor=sam_predictor)
+                if not seg_image:
+                    seg_image = process_but_no_save_segmentation(image=image, sam_predictor=sam_predictor, detection_model=YOLO_detector)
+                qs = re.sub(r"(Focus on objects)", rf"\1 {DEFAULT_SEG_IMAGE_TOKEN}", qs) 
+        if args.add_detection_token:
+            qs += "The feature of the labels and bounding boxes are in <detection>."
+        # if args.add_region_depth_prompt:
+        #     appending_prompt = ''
+        #     depth_model = load_depth_anything_model(device)
+        #     object_infos = process_but_no_save_results(image, idx, processor, groundingdino_model, depth_model, device)
+        #     if object_infos is not None:
+        #         if "regional" not in idx:
+        #             appending_prompt = "\nHere are some important objects you should focus on:\n"
+        #             for object_info in object_infos:
+        #                 classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
+        #                 box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
+        #                 appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
+        #         else:
+        #             crop_result = crop(img_path)
+        #             if crop_result:
+        #                 single_box = crop_result[1]
+        #                 for object_info in object_infos:
+        #                     classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
+        #                     if not ((box[2] < single_box[0]) or (box[0] > single_box[2]) or (box[3] < single_box[1]) or (box[1] > single_box[3])):
+        #                         box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
+        #                         appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
+        #                 appending_prompt = "\nHere is the important object you should focus on:\n" + appending_prompt if appending_prompt else ""
+        #     else:
+        #         crop_result = crop(img_path)
+        #         if crop_result:
+        #             box = crop_result[1]
+        #             box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
+        #             appending_prompt = f'''You should stay focus on the object(x_min, y_min, x_max, y_max): {','.join(str(ele) for ele in box)}'''
+        #     qs += appending_prompt
                 
-        cur_prompt = qs
+        # cur_prompt = qs
         if model.config.mm_use_im_start_end:
             qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
         else:
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
+        qs += "\"\n * Your answer:"
         
         conv = conv_templates[args.conv_mode].copy()
         conv.append_message(conv.roles[0], qs)
         conv.append_message(conv.roles[1], None)
         prompt = conv.get_prompt()
 
-        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt', add_region_token=args.add_region_token, add_detection_token=args.add_detection_token).unsqueeze(0).cuda()
+        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt', add_seg_img_token=args.add_seg_img_token, add_detection_token=args.add_detection_token).unsqueeze(0).cuda()
 
         image_tensor = process_images([image], image_processor, model.config)[0]
-        if regional_img: 
-            regional_tensor = process_images([regional_img], image_processor, model.config)[0].unsqueeze(0).half().cuda()
+        if seg_image: 
+            regional_tensor = process_images([seg_image], image_processor, model.config)[0].unsqueeze(0).half().cuda()
         else:
             regional_tensor = None 
 
@@ -179,7 +180,7 @@ def eval_model(args):
             output_ids = model.generate(
                 input_ids,
                 images=image_tensor.unsqueeze(0).half().cuda(),
-                regional_images=regional_tensor,
+                seg_images=regional_tensor,
                 image_sizes=[image.size],
                 do_sample=True if args.temperature > 0 else False,
                 temperature=args.temperature,
@@ -204,7 +205,9 @@ def eval_model(args):
         # print(idx, outputs)
         
         results[idx] = outputs
-        # print(outputs)
+        print(idx)
+        print(qs)
+        print(outputs)
     # ans_file.close()
     with open(args.answers_file, 'w') as f:
         json.dump(results, f, indent=4) 
@@ -221,13 +224,13 @@ if __name__ == "__main__":
     parser.add_argument("--num-chunks", type=int, default=1)
     parser.add_argument("--chunk-idx", type=int, default=0)
     
-    parser.add_argument("--temperature", type=float, default=0)
-    parser.add_argument("--top_p", type=float, default=0.9)
-    parser.add_argument("--num_beams", type=int, default=3)
+    parser.add_argument("--temperature", type=float, default=0.2)
+    parser.add_argument("--top_p", type=float, default=None)
+    parser.add_argument("--num_beams", type=int, default=1)
     
-    parser.add_argument('--add_region_token', action='store_true')
-    parser.add_argument("--add_region_prompt", action='store_true')
-    parser.add_argument("--add_region_depth_prompt", action='store_true')
+    parser.add_argument('--add_seg_img_token', action='store_true')
+    parser.add_argument("--add_obj_info_prompt", action='store_true')
+    # parser.add_argument("--add_region_depth_prompt", action='store_true')
     parser.add_argument('--add_detection_token', action='store_true')
     args = parser.parse_args()
 
