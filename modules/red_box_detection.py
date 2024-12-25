@@ -139,7 +139,7 @@ class CropRedBoxModel():
             "predicted_label": predicted_label,
             "confidence": confidence
         }
-        return {"segmented_image":black_img, "detection_information":result_json}
+        return {"segmented_image":Image.fromarray(black_img), "detection_information":result_json}
 
 if __name__ == "__main__":
 
