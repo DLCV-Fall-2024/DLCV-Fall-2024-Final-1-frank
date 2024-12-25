@@ -48,7 +48,7 @@
 
 ## (Best Choice)Add Object Detection Prompts(Suggestion use fine-tuning strategy)
 
-1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` or ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
+1. If ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` or ```checkpoints/llava-v1.5-7b-lora_5``` not exists, download the checkpoints by conduct the following command
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_split_task/download.sh
@@ -61,7 +61,7 @@
 
 ## Add Object Detection Prompts 
 
-1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` not exists)Download the checkpoints
+1. If ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` not exists, download the checkpoints by conduct the following command
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/download.sh
@@ -75,7 +75,7 @@
 
 ## (Optional) Only fine-tuning
 
-1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
+1. If ```checkpoints/llava-v1.5-7b-lora_5``` not exists, download the checkpoints by conduct the following command
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_5/download.sh
@@ -89,7 +89,7 @@
 
 ## (Optional) Concat Object Segment Image's Tokens
 
-1. (Optional, if ```checkpoints/lava-v1.5-7b-lora_add_seg_img_token_5``` not exists)Download the checkpoints
+1. If ```checkpoints/lava-v1.5-7b-lora_add_seg_img_token_5``` not exists, download the checkpoints by conduct the following command
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/download.sh
