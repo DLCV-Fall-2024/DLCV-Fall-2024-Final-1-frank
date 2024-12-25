@@ -49,7 +49,7 @@
 1. Download the checkpoints
 
     ```
-    bash scripts/strategy/llava-v1.5-7b-lora_5/download.sh
+    bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/download.sh
     ```
 
 2. Conduct the prediction
@@ -64,7 +64,7 @@
 1. Download the checkpoints
 
     ```
-    bash scripts/strategy/llava-v1.5-7b-lora_split_task
+    bash scripts/strategy/llava-v1.5-7b-lora_split_task/download.sh
     ```
 
 2. Conduct the prediction
