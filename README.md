@@ -44,9 +44,11 @@
 
     4. Concat Object Segment Image's Tokens
 
+* **Notes**: While conducting the prediction, you would need to be ask to **Enter your token**. Go to **HuggingFace** and apply a api token.
+
 ## Add Object Detection Prompts 
 
-1. Download the checkpoints
+1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` not exists)Download the checkpoints
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/download.sh
@@ -60,8 +62,7 @@
 
 ## Add Object Detection Prompts(Suggestion use fine-tuning strategy)
 
-
-1. Download the checkpoints
+1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` or ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_split_task/download.sh
@@ -74,7 +75,7 @@
 
 ## (Optional) Only fine-tuning
 
-1. Download the checkpoints
+1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_5/download.sh
@@ -88,7 +89,7 @@
 
 ## (Optional) Concat Object Segment Image's Tokens
 
-1. Download the checkpoints
+1. (Optional, if ```checkpoints/lava-v1.5-7b-lora_add_seg_img_token_5``` not exists)Download the checkpoints
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/download.sh

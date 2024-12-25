@@ -23,11 +23,11 @@ from modules.segment_objects import SegDino, SegYOLO
 from modules.detect_objects import DetectObjectModel
 from modules.red_box_detection import CropRedBoxModel
 
-from dotenv import load_dotenv
-from huggingface_hub import login
-load_dotenv()
-token = os.getenv("HUGGINGFACE_HUB_TOKEN")
-login(token)
+# from dotenv import load_dotenv
+# from huggingface_hub import login
+# load_dotenv()
+# token = os.getenv("HUGGINGFACE_HUB_TOKEN")
+# login(token)
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
