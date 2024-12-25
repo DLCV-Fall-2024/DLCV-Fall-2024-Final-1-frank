@@ -34,6 +34,57 @@
 
 # Prediction
 
+* There are some strategies you could choose:
+
+    1. (Best)Add Object Detection Prompts 
+
+    2. Only fine-tuning
+
+    3. Concat Object Segment Image's Tokens
+
+## Add Object Detection Prompts 
+
+1. Download the checkpoints
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_5/download.sh
+    ```
+
+2. Conduct the prediction
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/predict.sh
+    ```
+
+## (Optional) Only fine-tuning
+
+1. Download the checkpoints
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_5/download.sh
+    ```
+
+2. Conduct the prediction
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_5/predict.sh
+    ```
+
+## (Optional) Concat Object Segment Image's Tokens
+
+1. Download the checkpoints
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/download.sh
+    ```
+
+2. Conduct the prediction
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/predict.sh
+    ```
+
+
 # (Optional) Training
 
 ## Having ```Wandb``` Accounts 
@@ -83,7 +134,7 @@
 
 * Two options to download the dataset, conduct:
 
-    1. If pre-trained weight exists:```bash scripts/preprocess_data_download/regional_cropped_images.sh```
+    1. If data exists:```bash scripts/preprocess_data_download/regional_cropped_images.sh```
 
     2. ```python modules/red_box_detection.py```
 
@@ -91,18 +142,43 @@
 
 * Two options to download the dataset, conduct:
 
-    1. If pre-trained weight exists: ```bash scripts/preprocess_data_download/detection_objects.sh```
+    1. If data exists: ```bash scripts/preprocess_data_download/detection_objects.sh```
 
     2. ```python modules/detect_objects.py```
 
 ### 3. Segmented Images
 
-* 
+* Two options to download the dataset, conduct:
 
-# Execution 
+    1. If data exists: ```bash scripts/preprocess_data_download/segment_objects.sh```
 
-## ()Training
+    2. ```python modules/segment_objects.py```
 
+## Execution 
+
+## Add Object Detection Prompts 
+
+* Conduct 
+
+    ```CUDA_VISIBLE_DEVICES=$1 bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/finetune.sh```
+
+    * ```$1```: GPU Number
+
+### Only fine-tuning
+
+* Conduct 
+
+    ```CUDA_VISIBLE_DEVICES=$1 bash scripts/strategy/llava-v1.5-7b-lora_5/finetune.sh```
+
+    * ```$1```: GPU Number
+
+### Concat Object Segment Image's Tokens
+
+* Conduct 
+
+    ```CUDA_VISIBLE_DEVICES=$1 bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/finetune.sh```
+
+    * ```$1```: GPU Number
 
 
 * Conduct the following scripts 
@@ -182,7 +258,7 @@
 |Add Seg. Prompt(old)                      |✅(Prompt)|❌|❌|3|0.2|None|1|0.356|5.533|5.123|4.403|5.020|4.087|
 |Add Seg. Prompt(old)                      |✅(Prompt)|❌|❌|3|0  |0.9 |3|0.333|5.610|4.890|4.547|5.046|4.103|
 |Add Seg. Prompt, Depth(old)               |✅(Prompt)|✅|❌|2|0.2|None|1|0.414|4.447|4.820|4.693|4.653|3.806|
-|Add Seg. Prompt, Depth(new)("As a car...")|✅(Prompt)|✅|❌|2|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
+|Add Seg. Prompt, Depth(new)("As a car...")|✅(Prompt)|✅|❌|3|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
 
 # Supplement
 
