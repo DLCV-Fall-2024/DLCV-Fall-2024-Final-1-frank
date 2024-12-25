@@ -258,4 +258,4 @@
 |Add Seg. Prompt(old)                                            |✅(Prompt)|❌|❌|3|0  |0.9 |3|0.333|5.610|4.890|4.547|5.046|4.103|
 |Add Seg. Prompt, Depth(old)                                     |✅(Prompt)|✅|❌|2|0.2|None|1|0.414|4.447|4.820|4.693|4.653|3.806|
 |Add Seg. Prompt, Depth(new)("As a car...")                      |✅(Prompt)|✅|❌|3|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
-|Add Seg. Prompt, Depth(new)("As a car...") & Suggestion(Another)|✅(Prompt)|✅|❌|3|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
+|Add Seg. Prompt, Depth(new)("As a car...") & Suggestion(Another)|✅(Prompt)|✅|❌|3|0.2|None|1|0.351|5.410|5.247|4.630|5.096|4.147|
