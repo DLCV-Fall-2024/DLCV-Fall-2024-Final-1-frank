@@ -23,12 +23,6 @@ from modules.segment_objects import SegDino, SegYOLO
 from modules.detect_objects import DetectObjectModel
 from modules.red_box_detection import CropRedBoxModel
 
-# from dotenv import load_dotenv
-# from huggingface_hub import login
-# load_dotenv()
-# token = os.getenv("HUGGINGFACE_HUB_TOKEN")
-# login(token)
-
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
     chunk_size = math.ceil(len(lst) / n)  # integer division
@@ -163,7 +157,7 @@ def eval_model(args):
             input_ids = tokenizer_image_token(prompt, _tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt', add_seg_img_token=args.add_seg_img_token).unsqueeze(0).cuda()
 
             image_tensor = process_images([image], _image_processor, _model.config)[0]
-            if seg_image: 
+            if seg_image is not None: 
                 regional_tensor = process_images([seg_image], _image_processor, _model.config)[0].unsqueeze(0).half().cuda()
             else:
                 regional_tensor = None 
