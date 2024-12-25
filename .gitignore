@@ -8,3 +8,7 @@ val/
 *.ipynb
 .txt
 !few_shot/**/*.json
+data/*
+wandb/*
+checkpoints/*
+*__MACOSX/*
