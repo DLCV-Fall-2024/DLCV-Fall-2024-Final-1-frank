@@ -11,3 +11,4 @@ val/
 data/*
 wandb/*
 checkpoints/*
+*__MACOSX/*

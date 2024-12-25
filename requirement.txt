@@ -26,4 +26,3 @@ flash-attn==2.5.8
 deepspeed
 future
 python-dotenv
-faiss-cpu

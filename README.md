@@ -36,11 +36,13 @@
 
 * There are some strategies you could choose:
 
-    1. (Best)Add Object Detection Prompts 
+    1. Add Object Detection Prompts 
 
-    2. Only fine-tuning
+    2. Add Object Detection Prompts(Use only fine-tuning strategy in suggestion Task)
 
-    3. Concat Object Segment Image's Tokens
+    3. Only fine-tuning
+
+    4. Concat Object Segment Image's Tokens
 
 ## Add Object Detection Prompts 
 
@@ -55,6 +57,20 @@
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/predict.sh
     ```
+
+## Add Object Detection Prompts(Suggestion use fine-tuning strategy)
+
+
+1. Download the checkpoints
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_split_task
+    ```
+
+2. Conduct the prediction
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_split_task/predict.sh
 
 ## (Optional) Only fine-tuning
 
@@ -83,7 +99,6 @@
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/predict.sh
     ```
-
 
 # (Optional) Training
 
@@ -156,19 +171,19 @@
 
 ## Execution 
 
-## Add Object Detection Prompts 
-
-* Conduct 
-
-    ```CUDA_VISIBLE_DEVICES=$1 bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/finetune.sh```
-
-    * ```$1```: GPU Number
-
 ### Only fine-tuning
 
 * Conduct 
 
     ```CUDA_VISIBLE_DEVICES=$1 bash scripts/strategy/llava-v1.5-7b-lora_5/finetune.sh```
+
+    * ```$1```: GPU Number
+
+### Add Object Detection Prompts 
+
+* Conduct 
+
+    ```CUDA_VISIBLE_DEVICES=$1 bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/finetune.sh```
 
     * ```$1```: GPU Number
 
@@ -180,24 +195,7 @@
 
     * ```$1```: GPU Number
 
-
-* Conduct the following scripts 
-
-    ```
-    bash finetune.sh
-    ```
-
-    * If your environment has more than one gpu, you need to choose one gpu to conduct, which you needs to add ```CUDA_VISIBLE_DEVICES = <your gpu num>``` to assign which gpu you are going to use.
-
-## Prediction
-
-* After finetuning(i.e. conduct ```bash finetune.sh```), you can execute ```bash predict.sh```
-
-    * You have to replace the parameter ```--model-path``` with what you given ```--output_dir``` when you train.
-
-    * You could add ```CUDA_VISIBLE_DEVICES``` to assign which gpu you are going to use
-
-## Evaluation
+# (Optional) Evaluation
 
 * Two evaluation scripts to evaluate the performance of your model in **validation set**.
 
@@ -206,6 +204,16 @@
         ```
         python3 evaluation/gemini_eval.py --prediction <you predicted json file> --api_key <your gemini api key>
         ```
+
+        * Before evaluation, you have to install Gemini API. 
+
+            ```
+            pip install -q -U google-generativeai
+            ```
+        
+        * Please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
+
+        * Notes: Once you install ```google-generativeai```, if you want to go back to train, you have to conduct ```pip install protobuf==3.20``` to reverse the version of ```protobuf```
 
     2. ```Llama evaluation```: Since Gemini API has daily usage limits for free accounts, we provide a local testing option using LLaMA-3 as the LLM base model. Note that using llama_eval.py requires approximately 16GB of GPU memory.
 
@@ -233,16 +241,6 @@
     * The results from LLaMA-3 may differ from Gemini's evaluation. Please use LLaMA-3's results **only as a reference**.
     * The supplementary materials of using Gemini API and huggingface tokens can be found in [slides](https://docs.google.com/presentation/d/1eeXx_dL0OgkDn9_lhXnimTHrE6OYvAiiVOBwo2CTVOQ/edit#slide=id.g31b10de1f8f_7_155).
 
-# Folder Description
-
-* ```reference```: Store the previous README data
-
-* ```evaluation```: Code for evaluating the results
-
-* ```supplement```: Code for other purpose
-
-* ```LLaVA```: Code for LLaVA repository
-
 # Results
 
 |Strategy|Segmentation|Depth Map|RAG|Training Epochs|temperature|top_p|num_beams|Blue_3|General|Regional|Suggestion|LLM_Judge|Total Score|
@@ -259,26 +257,3 @@
 |Add Seg. Prompt(old)                      |✅(Prompt)|❌|❌|3|0  |0.9 |3|0.333|5.610|4.890|4.547|5.046|4.103|
 |Add Seg. Prompt, Depth(old)               |✅(Prompt)|✅|❌|2|0.2|None|1|0.414|4.447|4.820|4.693|4.653|3.806|
 |Add Seg. Prompt, Depth(new)("As a car...")|✅(Prompt)|✅|❌|3|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
-
-# Supplement
-
-## Preview Dataset 
-
-* Conduct the following code
-
-    ```
-    python3 supplement/data_download.py
-    ```
-
-## Supplement: Segmentation 
-
-
-
-
-3. (Optional, for evaluation)Install Gemini API: Only if you want to use ```evaluation/gemini_eval.py```, you have to install Gemini API. Please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
-    
-    ```
-    pip install -q -U google-generativeai
-    ```
-
-    * Notes: Once you install ```google-generativeai```, if you want to go back to train, you have to conduct ```pip install protobuf==3.20``` to reverse the version of ```protobuf```
