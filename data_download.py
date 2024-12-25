@@ -15,13 +15,6 @@ def _parser_args():
 def main():
     args = _parser_args()
     
-    # # check the column/key names for the dataset
-    # # Column names: id, image, conversation
-    # check_dataset = list(load_dataset("ntudlcv/dlcv_2024_final1", split="train", streaming=True).take(1))
-    # key_list = check_dataset[0].keys()
-    # key_info = [f"{key}: {type(check_dataset[0][key])}\n" for key in key_list]
-    # print(f"The columns(keys) in the dataset are:\n{''.join(key_info)}")
-    
     for dataset_type in args.dataset_types:
         # initialize
         output_dir = os.path.join(args.output_dataset_directory, dataset_type)

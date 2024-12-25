@@ -35,4 +35,4 @@ python3 training.py \
     --add_obj_info_prompt \
     --num_train_epochs 3 \
     --per_device_train_batch_size 4 \
-    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_prompt \
+    --output_dir checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3

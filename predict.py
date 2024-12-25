@@ -6,7 +6,10 @@ from tqdm import tqdm
 from collections import defaultdict
 import re
 import cv2
-import time
+import json
+import faiss
+import random
+import pickle
 
 from LLaVA.llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, DEFAULT_SEG_IMAGE_TOKEN
 from LLaVA.llava.conversation import conv_templates, SeparatorStyle
@@ -18,11 +21,11 @@ from PIL import Image
 import math
 import numpy as np
 
-from segmentation.DINO_seg import load_groundingdino_model, get_bounding_boxes, process_but_no_save, load_sam_model
-from segmentation.crop_regional import crop
-from segmentation.YOLO_seg import process_but_no_save_segmentation, load_detection_model
-from depth_map.DINO_with_labels import load_depth_anything_model, return_obj_infos
-from detection.vit_detection import return_red_box_info
+
+from modules.segment_objects import SegDino, SegYOLO
+from modules.detect_objects import DetectObjectModel
+from modules.red_box_detection import CropRedBoxModel
+
 
 
 def split_list(lst, n):
@@ -30,12 +33,12 @@ def split_list(lst, n):
     chunk_size = math.ceil(len(lst) / n)  # integer division
     return [lst[i:i+chunk_size] for i in range(0, len(lst), chunk_size)]
 
-
 def get_chunk(lst, n, k):
     chunks = split_list(lst, n)
     return chunks[k]
 
 def eval_model(args):
+
     # Model
     disable_torch_init()
     model_path = os.path.expanduser(args.model_path)
@@ -48,53 +51,59 @@ def eval_model(args):
     answers_file = os.path.expanduser(args.answers_file)
     os.makedirs(os.path.dirname(answers_file), exist_ok=True)
     
-    # load for the segmentation module if needed
-    if args.add_obj_info_prompt or args.add_seg_img_token:
-        processor, groundingdino_model, device = load_groundingdino_model()
-    if args.add_seg_img_token:
-        sam_predictor = load_sam_model()
-        YOLO_detector = load_detection_model()
-    
     results = {}
+    
+    # load for the image
+    det_obj_model = DetectObjectModel()
+    if args.add_obj_info_prompt:
+        red_box_crop_model = CropRedBoxModel()
+        
+    if args.add_seg_img_token:
+        red_box_crop_model = CropRedBoxModel()
+        seg_dino = SegDino()
+        seg_yolo = SegYOLO()
+
     for line in tqdm(questions):
         idx = line["id"]
         image_file = f"{line['id']}.png"
-        qs = line["conversations"][0]["value"].replace("<image>", "")
-        qs = "\n\nYou are an experienced car driver, enable to point out all details need to be focused while driving. An image from the driver's seat of a ego car is given, corresponded to a question. You need to answer the question with your analysis from image.\n" + f"* Question\n\"{qs} \n"
         
         # get the image and the image weight and height
         img_path = os.path.join(args.image_folder, image_file)
         image = Image.open(os.path.join(args.image_folder, image_file)).convert('RGB')
         
+        qs = line["conversations"][0]["value"].replace("<image>", "")
+        qs = "\n\nYou are an experienced car driver, \
+            enable to point out all details need to be focused while driving. \
+                An image from the driver's seat of a ego car is given, \
+                    corresponded to a question. You need to answer the question with your analysis from image.\n" + f" Question\n\"{qs} \n"
+        
         seg_image = None 
         
         # for add region_prompt
         if args.add_obj_info_prompt:
-            depth_model = load_depth_anything_model(device)
             appending_prompt = ''
             if  "regional" in idx:
-                red_box_info = return_red_box_info(image=image)["detection_information"]
+                red_box_info = red_box_crop_model.get_red_box(image=image, image_id=idx)
                 if red_box_info is not None:
+                    red_box_info = red_box_info["detection_information"]
                     coordinate = [( round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(red_box_info["box"])]
-                    assert min(coordinate) >=0 and max(coordinate) <= 1
                     depth = red_box_info["depth_category"]
                     label = red_box_info["predicted_label"]
-                    appending_prompt = f'\n You only need to focus on the object: \n * object: {label} \n * distance: {depth} \n * coordinate: {coordinate}'
+                    appending_prompt = f'\n To deal with it easily, you only need to focus on the object: \n * object: {label} \n * coordinate: {coordinate} \n * distance: {depth} \n'
             else:
-                object_infos = return_obj_infos(image, idx, processor, groundingdino_model, depth_model, device)
+                object_infos = det_obj_model.get_objs_info(image, idx)
                 if object_infos:
-                    appending_prompt = f'\n You only need to focus on the object: \n'
+                    appending_prompt = f'\n You only need to focus on the objects: \n'
                     for object_info in object_infos:
                         coordinate = [( round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(object_info["box"])]
-                        assert min(coordinate) >=0 and max(coordinate) <= 1
                         depth = object_info["depth_category"]["depth_category"]
                         label = object_info["class"]
-                        appending_prompt += '\n * object: {label} \n * distance: {depth} \n * coordinate: {coordinate}'
+                        appending_prompt += f"\n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{coordinate}. \n * Distance: {depth} \n"
             qs += appending_prompt
             torch.cuda.empty_cache()
         if args.add_seg_img_token:
             if "regional" in idx:
-                crop_result = return_red_box_info(image=image)
+                crop_result = red_box_crop_model.get_red_box(image=image, image_id=idx)
                 if crop_result:
                     seg_image = crop_result["segmented_image"]
                 else:
@@ -121,47 +130,18 @@ def eval_model(args):
                         seg_image = Image.fromarray(mask_image)
                 qs = re.sub(r"(describe the object)", rf"\1 {DEFAULT_SEG_IMAGE_TOKEN}", qs)
             else:
-                seg_image = process_but_no_save(image, idx, processor=processor, groundingdino_model=groundingdino_model, device=device, sam_predictor=sam_predictor)
+                seg_image = seg_dino.get_seg_image(image=image, image_id=idx)
                 if not seg_image:
-                    seg_image = process_but_no_save_segmentation(image=image, sam_predictor=sam_predictor, detection_model=YOLO_detector)
+                    seg_image = seg_yolo.get_seg_image(image=image, image_id=idx)
                 qs = re.sub(r"(Focus on objects)", rf"\1 {DEFAULT_SEG_IMAGE_TOKEN}", qs) 
         if args.add_detection_token:
             qs += "The feature of the labels and bounding boxes are in <detection>."
-        # if args.add_region_depth_prompt:
-        #     appending_prompt = ''
-        #     depth_model = load_depth_anything_model(device)
-        #     object_infos = process_but_no_save_results(image, idx, processor, groundingdino_model, depth_model, device)
-        #     if object_infos is not None:
-        #         if "regional" not in idx:
-        #             appending_prompt = "\nHere are some important objects you should focus on:\n"
-        #             for object_info in object_infos:
-        #                 classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
-        #                 box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-        #                 appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
-        #         else:
-        #             crop_result = crop(img_path)
-        #             if crop_result:
-        #                 single_box = crop_result[1]
-        #                 for object_info in object_infos:
-        #                     classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
-        #                     if not ((box[2] < single_box[0]) or (box[0] > single_box[2]) or (box[3] < single_box[1]) or (box[1] > single_box[3])):
-        #                         box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-        #                         appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} \n Distance to our eco car: {depth}'''
-        #                 appending_prompt = "\nHere is the important object you should focus on:\n" + appending_prompt if appending_prompt else ""
-        #     else:
-        #         crop_result = crop(img_path)
-        #         if crop_result:
-        #             box = crop_result[1]
-        #             box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-        #             appending_prompt = f'''You should stay focus on the object(x_min, y_min, x_max, y_max): {','.join(str(ele) for ele in box)}'''
-        #     qs += appending_prompt
-                
-        # cur_prompt = qs
+        
         if model.config.mm_use_im_start_end:
             qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
         else:
             qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
-        qs += "\"\n * Your answer:"
+        qs += "\"\n Your answer:"
         
         conv = conv_templates[args.conv_mode].copy()
         conv.append_message(conv.roles[0], qs)
@@ -193,20 +173,9 @@ def eval_model(args):
 
         outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
         
-        # ans_id = shortuuid.uuid()
-        # ans_file.write(json.dumps({"question_id": idx,
-        #                            "prompt": cur_prompt,
-        #                            "text": outputs,
-        #                            "answer_id": ans_id,
-        #                            "model_id": model_name,
-        #                            "metadata": {}}) + "\n")
-        # ans_file.flush()
-        # print(qs)
-        # print(idx, outputs)
-        
         results[idx] = outputs
         print(idx)
-        print(qs)
+        # print(qs)
         print(outputs)
     # ans_file.close()
     with open(args.answers_file, 'w') as f:

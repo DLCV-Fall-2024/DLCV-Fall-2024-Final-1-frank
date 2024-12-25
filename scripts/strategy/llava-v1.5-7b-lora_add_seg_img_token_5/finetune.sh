@@ -33,6 +33,6 @@ python3 training.py \
     --lazy_preprocess True \
     --report_to wandb \
     --add_seg_img_token \
-    --num_train_epochs 3 \
+    --num_train_epochs 5 \
     --per_device_train_batch_size 4 \
-    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_image_token 
+    --output_dir ./checkpoints/llava-v1.5-7b-lora_add_seg_img_token_5

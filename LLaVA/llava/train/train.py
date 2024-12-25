@@ -42,9 +42,6 @@ from ..mm_utils import tokenizer_image_token
 
 from PIL import Image
 
-from segmentation.DINO_seg import load_groundingdino_model, get_bounding_boxes
-from segmentation.crop_regional import crop
-
 local_rank = None
 
 
@@ -71,11 +68,10 @@ class ModelArguments:
     mm_use_im_patch_token: bool = field(default=True)
     mm_patch_merge_type: Optional[str] = field(default='flat')
     mm_vision_select_feature: Optional[str] = field(default="patch")
+    
     add_seg_img_token: Optional[bool] = field(default=False)
     add_obj_info_prompt: Optional[bool] = field(default=False)
-    # add_region_depth_prompt: Optional[bool] = field(default=False)
     add_detection_token: Optional[bool] = field(default=False)
-
 
 @dataclass
 class DataArguments:
@@ -681,21 +677,19 @@ class LazySupervisedDataset(Dataset):
         list_data_dict = json.load(open(data_path, "r"))
 
         rank0_print("Formatting inputs...Skip in lazy mode")
-        # assert (not (add_seg_img_token and add_obj_info_prompt)), "You must choose only one!"
         self.tokenizer = tokenizer
         self.list_data_dict = list_data_dict
         self.add_seg_img_token = add_seg_img_token
         self.data_args = data_args
+        
+        # for ours 
         self._add_img_path()
         self._add_seg_img_token()
         if add_obj_info_prompt:
             self._add_obj_info_prompt()
-        # if add_region_depth_prompt:
-        #     self._add_region_depth_prompt()
         if add_detection_token:
             self._add_detection_token()
         
-
     def _add_img_path(self):
         for data in self.list_data_dict:
             data["image"] = f'{data["id"]}.png'
@@ -704,9 +698,12 @@ class LazySupervisedDataset(Dataset):
         for data in self.list_data_dict:
             data["seg_image"] = None 
         if self.add_seg_img_token:
+            REGIONAL_DIR = 'data/preprocess/regional_cropped_data'
+            YOLO_SEG_DIR = "data/preprocess/segmentation_YOLO"
+            DINO_SEG_DIR = "data/preprocess/segmentation_DINO"
             for data in self.list_data_dict:
                 if "regional" in data["id"]:
-                    region_crop_path = os.path.join("data/regional_results", f'{data["id"]}_output.jpg')
+                    region_crop_path = os.path.join(REGIONAL_DIR, f'{data["id"]}_output.jpg')
                     if not os.path.exists(region_crop_path):
                         TRAINING_IMG_PATH = "data/train/images"
                         image_path = os.path.join(TRAINING_IMG_PATH, f'{data["id"]}.png')
@@ -736,38 +733,18 @@ class LazySupervisedDataset(Dataset):
                     data["seg_image"] = region_crop_path
                     data["conversations"][0]["value"] = re.sub(r"(describe the object)", rf"\1 {DEFAULT_SEG_IMAGE_TOKEN}", data["conversations"][0]["value"])
                 else:
-                    first_path = os.path.join("data/DINO_segmentation_results", f'{data["id"]}_segmentation.jpg')
-                    second_path = os.path.join("data/YOLO_SAM_segmentation_results", f'{data["id"]}_safety_segmentation.png')
+                    first_path = os.path.join(DINO_SEG_DIR, f'{data["id"]}_segmentation.jpg')
+                    second_path = os.path.join(YOLO_SEG_DIR, f'{data["id"]}_safety_segmentation.png')
                     data["seg_image"] = first_path if os.path.exists(first_path) else second_path
                     data["conversations"][0]["value"] = re.sub(r"(Focus on objects)", rf"\1 {DEFAULT_SEG_IMAGE_TOKEN}", data["conversations"][0]["value"])
     
     def _add_obj_info_prompt(self):
-        # processor, groundingdino_model, device = load_groundingdino_model()
-        # print("We first conduct segmentation")
-        # # load for getting pre-crop info
-        # STORING_INFO_REGION_PATH = "data/regional_segmentation/regional_coord.json"
-        # coords_region = None
-        # if os.path.exists(STORING_INFO_REGION_PATH):
-        #     with open(STORING_INFO_REGION_PATH, 'r') as f:
-        #         coords_region = json.load(f)
-        # else:
-        #     coords_region_result = {}
-        
-        # coords_gen_sug = None
-        # STORING_INFO_GEN_SUG_PATH = "data/YOLO_SAM_segmentation_results/regional_coord.json"
-        # if os.path.exists(STORING_INFO_GEN_SUG_PATH):
-        #     with open(STORING_INFO_GEN_SUG_PATH, 'r') as f:
-        #         coords_gen_sug = json.load(f)
-        # else:
-        #     coords_gen_sug_result = {}
-        
+        REGIONAL_DIR = 'data/preprocess/regional_cropped_data'
+        GEN_SUG_DIR = 'data/preprocess/obj_detect_data'
         for data in tqdm(self.list_data_dict):
             img_path = os.path.join(self.data_args.image_folder, data["image"])
             image = Image.open(img_path).convert('RGB')
             appending_prompt = ''
-            
-            REGIONAL_DIR = 'data/regional_results'
-            GEN_SUG_DIR = 'data/DINO_with_information_results'
             if  "regional" in data["id"] and f'{data["id"]}_info.json' in os.listdir(REGIONAL_DIR):
                 with open(os.path.join(REGIONAL_DIR, f'{data["id"]}_info.json'), 'r') as f:
                     info = json.load(f)
@@ -784,102 +761,9 @@ class LazySupervisedDataset(Dataset):
                     depth_category = info["depth_category"]["depth_category"]
                     label = info["class"]
                     appending_prompt += f"\n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{bbox}. \n * Distance: {depth_category} \n"
-                # get the coordination
-                # if not coords_region:
-                #     crop_result = crop(image_path=img_path)
-                #     coordination = crop_result[1] if crop_result else None
-                # else:
-                #     coordination = coords_region[data["id"]] if data["id"] in coords_region else None
-                
-                # if coordination is not None:
-                #     coordination = [(round(ele/image.width,4) if i%2 == 0 else round(ele/image.height,4)) for i, ele in enumerate(coordination)]
-                #     assert min(coordination) >=0 and max(coordination) <= 1
-                #     appending_prompt = f'''
-                #     You have to first examine whether there is a red bounding box (x_min, y_min, x_max, y_max): {coordination}
-                #     If it is, just stay focus on the object inside the bounding box
-                #     '''
-                    
-                #     # store the coords
-                #     if not coords_region:
-                #         coords_region_result[data["id"]] = crop_result[1]
-                
-            # else:
-            #     if not coords_gen_sug:
-            #         boxes, _, labels = get_bounding_boxes(np.array(image), processor, groundingdino_model, device)
-            #         if len(boxes) == 0:
-            #             continue
-            #         result_dict = defaultdict(list)
-            #         for bbox, label in zip(boxes, labels):
-            #             bbox = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(bbox.tolist())]
-            #             result_dict[label].append(bbox)
-            #         result_dict = dict(result_dict)
-            #         result_text = ""
-            #         for key in result_dict:
-            #             result_text += f"{key}: {result_dict[key]} \n"
-            #         coords_gen_sug_result[data["id"]] = result_text
-            #     else:
-            #         if data["id"] not in coords_gen_sug:
-            #             continue
-            #         result_text = coords_gen_sug[data["id"]]
-            #     appending_prompt = f'''
-            #     You can refer some important objects given the following information(The format would be <object>:[<x_min, y_min, x_max, y_max>, ...]
-            #     {result_text}
-            #     '''
                 
             data["conversations"][0]["value"] += appending_prompt
             torch.cuda.empty_cache()
-        
-        # store the info for preprocessing, avoid re-execute again
-        # if not coords_region:
-        #     with open(STORING_INFO_REGION_PATH, 'w') as f:
-        #         json.dump(coords_region_result, f, indent=4)
-        # if not coords_gen_sug:
-        #     with open(STORING_INFO_GEN_SUG_PATH, 'w') as f:
-        #         json.dump(coords_gen_sug_result, f, indent=4)
-    
-    # def _add_region_depth_prompt(self):
-    #     with open(os.path.join("data/DINO_with_depth_map","regional_coord.json"), 'r') as f:
-    #         infos = json.load(f)
-    #     with open(os.path.join("data/regional_segmentation/regional_coord.json"), 'r') as f:
-    #         regional_bboxes_infos = json.load(f)
-    #     for data in self.list_data_dict:
-    #         img_path = os.path.join(self.data_args.image_folder, data["image"])
-    #         image = Image.open(img_path).convert('RGB')
-    #         appending_prompt = ""
-    #         if infos[data["id"]] is not None:
-    #             if "regional" not in data["id"]:
-    #                 appending_prompt = "\nHere are some important objects you should focus on:\n"
-    #                 object_infos = infos[data["id"]]
-    #                 for object_info in object_infos:
-    #                     classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
-    #                     box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-    #                     appending_prompt += f'''Object: {classification} \n Box (x_min, y_min, x_max, y_max): \
-    #                         {','.join([str(ele) for ele in box])} \
-    #                             \n Distance to our eco car: {depth}'''
-    #             elif data["id"] in regional_bboxes_infos:
-    #                 object_infos = infos[data["id"]]
-    #                 single_box = regional_bboxes_infos[data["id"]]
-    #                 for object_info in object_infos:
-    #                     classification, box, depth = object_info["class"], object_info["box"], object_info["depth_category"]["depth_category"] 
-    #                     if not ((box[2] < single_box[0]) or (box[0] > single_box[2]) or (box[3] < single_box[1]) or (box[1] > single_box[3])):
-    #                         box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-    #                         appending_prompt += f'''
-    #                         Object: {classification}
-    #                         Box (x_min, y_min, x_max, y_max): {','.join([str(ele) for ele in box])} 
-    #                         Distance to our eco car: {depth}
-    #                         '''
-    #                 if not appending_prompt:
-    #                     continue
-    #                 appending_prompt = "\nHere is the important objects you should focus on:\n" + appending_prompt
-                    
-    #         elif data["id"] in regional_bboxes_infos: 
-    #             appending_prompt = ""
-    #             box = regional_bboxes_infos[data["id"]]
-    #             box = [(round(ele/image.width, 4) if i%2 == 0 else round(ele/image.height, 4)) for i, ele in enumerate(box)]
-    #             appending_prompt = f'''
-    #             You should stay focus on the object(x_min, y_min, x_max, y_max): {','.join(str(ele) for ele in box)}
-    #             '''
-    #         data["conversations"][0]["value"] += appending_prompt
     
     def _add_detection_token(self):
         for data in self.list_data_dict:

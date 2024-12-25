@@ -5,5 +5,5 @@ python3 predict.py \
     --question-file data/test/annotation.json \
     --image-folder data/test/images \
     --add_seg_img_token \
-    --model-path checkpoints/llava-v1.5-7b-lora_add_image_token_5 \
-    --answers-file results/llava-v1.5-7b-lora_add_image_token_test/submission.json 
+    --model-path checkpoints/llava-v1.5-7b-lora_add_seg_img_token_5 \
+    --answers-file results/llava-v1.5-7b-lora_add_seg_img_token_5/submission.json 
