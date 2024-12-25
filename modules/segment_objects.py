@@ -156,6 +156,8 @@ class SegYOLO():
             save_path = os.path.join(output_dir, f"{image_id}_safety_segmentation.png")
             overlayed_image.save(save_path)
             print(f"Saved safety segmentation for {image_id} at {save_path}")
+        
+        overlayed_image = Image.fromarray(overlayed_image)
         return overlayed_image
         
         
