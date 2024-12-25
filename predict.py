@@ -55,8 +55,8 @@ def eval_model(args):
     results = {}
     
     # load for the image
-    det_obj_model = DetectObjectModel()
     if args.add_obj_info_prompt:
+        det_obj_model = DetectObjectModel()
         red_box_crop_model = CropRedBoxModel()
         
     if args.add_seg_img_token:
