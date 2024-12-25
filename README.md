@@ -36,15 +36,28 @@
 
 * There are some strategies you could choose:
 
-    1. Add Object Detection Prompts 
+    1. **(Best Choice)Add Object Detection Prompts(Use only fine-tuning strategy in suggestion Task)**
 
-    2. Add Object Detection Prompts(Use only fine-tuning strategy in suggestion Task)
+    2. Add Object Detection Prompts 
 
     3. Only fine-tuning
 
     4. Concat Object Segment Image's Tokens
 
 * **Notes**: While conducting the prediction, you would need to be ask to **Enter your token**. Go to **HuggingFace** and apply a api token.
+
+## (Best Choice)Add Object Detection Prompts(Suggestion use fine-tuning strategy)
+
+1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` or ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_split_task/download.sh
+    ```
+
+2. Conduct the prediction
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_split_task/predict.sh
 
 ## Add Object Detection Prompts 
 
@@ -59,19 +72,6 @@
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/predict.sh
     ```
-
-## Add Object Detection Prompts(Suggestion use fine-tuning strategy)
-
-1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` or ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
-
-    ```
-    bash scripts/strategy/llava-v1.5-7b-lora_split_task/download.sh
-    ```
-
-2. Conduct the prediction
-
-    ```
-    bash scripts/strategy/llava-v1.5-7b-lora_split_task/predict.sh
 
 ## (Optional) Only fine-tuning
 
