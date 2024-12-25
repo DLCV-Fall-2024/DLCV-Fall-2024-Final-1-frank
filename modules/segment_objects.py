@@ -157,7 +157,6 @@ class SegYOLO():
             overlayed_image.save(save_path)
             print(f"Saved safety segmentation for {image_id} at {save_path}")
         
-        overlayed_image = Image.fromarray(overlayed_image)
         return overlayed_image
         
         
