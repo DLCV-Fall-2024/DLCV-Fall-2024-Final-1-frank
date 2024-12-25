@@ -8,6 +8,7 @@ import re
 import cv2
 import json
 
+
 from LLaVA.llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, DEFAULT_SEG_IMAGE_TOKEN
 from LLaVA.llava.conversation import conv_templates, SeparatorStyle
 from LLaVA.llava.model.builder import load_pretrained_model
@@ -18,10 +19,15 @@ from PIL import Image
 import math
 import numpy as np
 
-
 from modules.segment_objects import SegDino, SegYOLO
 from modules.detect_objects import DetectObjectModel
 from modules.red_box_detection import CropRedBoxModel
+
+from dotenv import load_dotenv
+from huggingface_hub import login
+load_dotenv()
+token = os.getenv("HUGGINGFACE_HUB_TOKEN")
+login(token)
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
