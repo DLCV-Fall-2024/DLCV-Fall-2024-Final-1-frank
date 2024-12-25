@@ -5,7 +5,6 @@ import torch
 import numpy as np
 from datasets import load_dataset
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
 from depth_anything_v2.dpt import DepthAnythingV2
 from torchvision.ops import nms
 from tqdm import tqdm

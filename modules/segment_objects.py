@@ -5,9 +5,7 @@ import numpy as np
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 from PIL import Image
-from transformers import AutoProcessor, AutoModelForZeroShotObjectDetection
 from segment_anything import sam_model_registry, SamPredictor
-import torchvision
 from torchvision.ops import nms
 from ultralytics import YOLO  
 from tqdm import tqdm

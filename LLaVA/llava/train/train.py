@@ -71,7 +71,6 @@ class ModelArguments:
     
     add_seg_img_token: Optional[bool] = field(default=False)
     add_obj_info_prompt: Optional[bool] = field(default=False)
-    add_detection_token: Optional[bool] = field(default=False)
 
 @dataclass
 class DataArguments:
@@ -443,7 +442,7 @@ def preprocess_v1(
     # Tokenize conversations
 
     if has_image:
-        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_seg_img_token=add_seg_img_token, add_detection_token=add_detection_token) for prompt in conversations], dim=0)
+        input_ids = torch.stack([tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_seg_img_token=add_seg_img_token) for prompt in conversations], dim=0)
 
     else:
         input_ids = tokenizer(
@@ -476,8 +475,8 @@ def preprocess_v1(
             parts[0] += sep
 
             if has_image:
-                round_len = len(tokenizer_image_token(rou, tokenizer, add_seg_img_token=add_seg_img_token, add_detection_token=add_detection_token))
-                instruction_len = len(tokenizer_image_token(parts[0], tokenizer, add_seg_img_token=add_seg_img_token, add_detection_token=add_detection_token)) - 2
+                round_len = len(tokenizer_image_token(rou, tokenizer, add_seg_img_token=add_seg_img_token))
+                instruction_len = len(tokenizer_image_token(parts[0], tokenizer, add_seg_img_token=add_seg_img_token)) - 2
             else:
                 round_len = len(tokenizer(rou).input_ids)
                 instruction_len = len(tokenizer(parts[0]).input_ids) - 2
@@ -643,10 +642,10 @@ def preprocess(
         conversations.append(conversation)
     # tokenize conversations
     def get_tokenize_len(prompts):
-        return [len(tokenizer_image_token(prompt, tokenizer, add_seg_img_token=add_seg_img_token, add_detection_token=add_detection_token)) for prompt in prompts]
+        return [len(tokenizer_image_token(prompt, tokenizer, add_seg_img_token=add_seg_img_token)) for prompt in prompts]
 
     if has_image:
-        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_seg_img_token=add_seg_img_token, add_detection_token=add_detection_token) for prompt in conversations]
+        input_ids = [tokenizer_image_token(prompt, tokenizer, return_tensors='pt', add_seg_img_token=add_seg_img_token) for prompt in conversations]
     else:
         conversations_tokenized = _tokenize_fn(conversations, tokenizer)
         input_ids = conversations_tokenized["input_ids"]
@@ -670,9 +669,7 @@ class LazySupervisedDataset(Dataset):
                  tokenizer: transformers.PreTrainedTokenizer,
                  data_args: DataArguments, 
                  add_seg_img_token: bool = False,
-                 add_obj_info_prompt: bool=False,
-                #  add_region_depth_prompt: bool=False,
-                 add_detection_token: bool=False):
+                 add_obj_info_prompt: bool=False):
         super(LazySupervisedDataset, self).__init__()
         list_data_dict = json.load(open(data_path, "r"))
 
@@ -687,8 +684,6 @@ class LazySupervisedDataset(Dataset):
         self._add_seg_img_token()
         if add_obj_info_prompt:
             self._add_obj_info_prompt()
-        if add_detection_token:
-            self._add_detection_token()
         
     def _add_img_path(self):
         for data in self.list_data_dict:
@@ -765,9 +760,6 @@ class LazySupervisedDataset(Dataset):
             data["conversations"][0]["value"] += appending_prompt
             torch.cuda.empty_cache()
     
-    def _add_detection_token(self):
-        for data in self.list_data_dict:
-            data["conversations"][0]["value"] += "The feature of the labels and bounding boxes are in <detection> ."
     def __len__(self):
         return len(self.list_data_dict)
 
@@ -885,9 +877,6 @@ class DataCollatorForSupervisedDataset(object):
                 batch['seg_images'] = torch.stack(seg_images)
             else:
                 batch['seg_images'] = seg_images
-
-        if add_detection_token:
-            batch["add_detection_token"] = True
         
         return batch
 
@@ -899,9 +888,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
                                 data_path=data_args.data_path,
                                 data_args=data_args, 
                                 add_seg_img_token=add_seg_img_token,
-                                add_obj_info_prompt=add_obj_info_prompt,
-                                # add_region_depth_prompt=add_region_depth_prompt,
-                                add_detection_token=add_detection_token)
+                                add_obj_info_prompt=add_obj_info_prompt)
     data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer)
     return dict(train_dataset=train_dataset,
                 eval_dataset=None,
@@ -910,8 +897,7 @@ def make_supervised_data_module(tokenizer: transformers.PreTrainedTokenizer,
 
 def train(attn_implementation=None):
     global local_rank
-    global add_seg_img_token, add_obj_info_prompt, add_detection_token
-
+    global add_seg_img_token, add_obj_info_prompt 
     parser = transformers.HfArgumentParser(
         (ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
@@ -919,8 +905,6 @@ def train(attn_implementation=None):
     # choices
     add_seg_img_token = model_args.add_seg_img_token
     add_obj_info_prompt =  model_args.add_obj_info_prompt
-    # add_region_depth_prompt = model_args.add_region_depth_prompt
-    add_detection_token = model_args.add_detection_token
     
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))

@@ -7,9 +7,6 @@ from collections import defaultdict
 import re
 import cv2
 import json
-import faiss
-import random
-import pickle
 
 from LLaVA.llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN, DEFAULT_SEG_IMAGE_TOKEN
 from LLaVA.llava.conversation import conv_templates, SeparatorStyle
@@ -25,8 +22,6 @@ import numpy as np
 from modules.segment_objects import SegDino, SegYOLO
 from modules.detect_objects import DetectObjectModel
 from modules.red_box_detection import CropRedBoxModel
-
-
 
 def split_list(lst, n):
     """Split a list into n (roughly) equal-sized chunks"""
@@ -44,6 +39,12 @@ def eval_model(args):
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, args.model_base, model_name)
+    
+    if args.suggestion_model_path:
+        assert args.add_obj_info_prompt and not args.add_seg_img_token
+        suggestion_model_path = os.path.expanduser(args.suggestion_model_path)
+        suggestion_model_name = get_model_name_from_path(suggestion_model_path)
+        suggestion_tokenizer, suggestion_model, suggestion_image_processor, suggestion_context_len = load_pretrained_model(suggestion_model_path, args.model_base, suggestion_model_name)
 
     with open(args.question_file, 'r') as f:
         questions_test = json.load(f)
@@ -90,6 +91,8 @@ def eval_model(args):
                     depth = red_box_info["depth_category"]
                     label = red_box_info["predicted_label"]
                     appending_prompt = f'\n To deal with it easily, you only need to focus on the object: \n * object: {label} \n * coordinate: {coordinate} \n * distance: {depth} \n'
+            elif "suggestion" in idx and args.suggestion_model_path:
+                pass
             else:
                 object_infos = det_obj_model.get_objs_info(image, idx)
                 if object_infos:
@@ -101,6 +104,8 @@ def eval_model(args):
                         appending_prompt += f"\n * Object: {label} \n * Coordinate(x_min, y_min, x_max, y_max):{coordinate}. \n * Distance: {depth} \n"
             qs += appending_prompt
             torch.cuda.empty_cache()
+        
+        # for add image seg token
         if args.add_seg_img_token:
             if "regional" in idx:
                 crop_result = red_box_crop_model.get_red_box(image=image, image_id=idx)
@@ -134,50 +139,56 @@ def eval_model(args):
                 if not seg_image:
                     seg_image = seg_yolo.get_seg_image(image=image, image_id=idx)
                 qs = re.sub(r"(Focus on objects)", rf"\1 {DEFAULT_SEG_IMAGE_TOKEN}", qs) 
-        if args.add_detection_token:
-            qs += "The feature of the labels and bounding boxes are in <detection>."
+        # if args.add_detection_token:
+        #     qs += "The feature of the labels and bounding boxes are in <detection>."
         
-        if model.config.mm_use_im_start_end:
-            qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
-        else:
-            qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
-        qs += "\"\n Your answer:"
+        def generate(_tokenizer, _model, _image_processor, qs=qs, args=args, seg_image=seg_image):
+            if _model.config.mm_use_im_start_end:
+                qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
+            else:
+                qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
+            qs += "\"\n Your answer:"
+            
+            conv = conv_templates[args.conv_mode].copy()
+            conv.append_message(conv.roles[0], qs)
+            conv.append_message(conv.roles[1], None)
+            prompt = conv.get_prompt()
+
+            input_ids = tokenizer_image_token(prompt, _tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt', add_seg_img_token=args.add_seg_img_token).unsqueeze(0).cuda()
+
+            image_tensor = process_images([image], _image_processor, _model.config)[0]
+            if seg_image: 
+                regional_tensor = process_images([seg_image], _image_processor, _model.config)[0].unsqueeze(0).half().cuda()
+            else:
+                regional_tensor = None 
+
+            with torch.inference_mode():
+                output_ids = _model.generate(
+                    input_ids,
+                    images=image_tensor.unsqueeze(0).half().cuda(),
+                    seg_images=regional_tensor,
+                    image_sizes=[image.size],
+                    do_sample=True if args.temperature > 0 else False,
+                    temperature=args.temperature,
+                    top_p=args.top_p,
+                    num_beams=args.num_beams,
+                    # add_detection_token = args.add_detection_token,
+                    # no_repeat_ngram_size=3,
+                    max_new_tokens=1024,
+                    use_cache=True)
+
+            outputs = _tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+            return outputs
         
-        conv = conv_templates[args.conv_mode].copy()
-        conv.append_message(conv.roles[0], qs)
-        conv.append_message(conv.roles[1], None)
-        prompt = conv.get_prompt()
-
-        input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors='pt', add_seg_img_token=args.add_seg_img_token, add_detection_token=args.add_detection_token).unsqueeze(0).cuda()
-
-        image_tensor = process_images([image], image_processor, model.config)[0]
-        if seg_image: 
-            regional_tensor = process_images([seg_image], image_processor, model.config)[0].unsqueeze(0).half().cuda()
+        if "suggestion" in idx and args.suggestion_model_path:
+            outputs = generate(_tokenizer=suggestion_tokenizer, _model=suggestion_model, _image_processor=suggestion_image_processor)
         else:
-            regional_tensor = None 
-
-        with torch.inference_mode():
-            output_ids = model.generate(
-                input_ids,
-                images=image_tensor.unsqueeze(0).half().cuda(),
-                seg_images=regional_tensor,
-                image_sizes=[image.size],
-                do_sample=True if args.temperature > 0 else False,
-                temperature=args.temperature,
-                top_p=args.top_p,
-                num_beams=args.num_beams,
-                add_detection_token = args.add_detection_token,
-                # no_repeat_ngram_size=3,
-                max_new_tokens=1024,
-                use_cache=True)
-
-        outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
+            outputs = generate(_tokenizer=tokenizer, _model=model, _image_processor=image_processor)
         
         results[idx] = outputs
-        print(idx)
+        # print(idx)
         # print(qs)
-        print(outputs)
-    # ans_file.close()
+        # print(outputs)
     with open(args.answers_file, 'w') as f:
         json.dump(results, f, indent=4) 
     
@@ -199,8 +210,8 @@ if __name__ == "__main__":
     
     parser.add_argument('--add_seg_img_token', action='store_true')
     parser.add_argument("--add_obj_info_prompt", action='store_true')
-    # parser.add_argument("--add_region_depth_prompt", action='store_true')
-    parser.add_argument('--add_detection_token', action='store_true')
+    parser.add_argument('--suggestion_model_path', default=None, type=str)
+    
     args = parser.parse_args()
 
     eval_model(args)
