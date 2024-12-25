@@ -6,51 +6,104 @@
 
 ## Environment Setup
 
-1. Create a new environment (python version needs to `>=3.10`)
+1. Create a new environment (python version needs to `>=3.10`), and download the required packages
     
     ```
     conda create -n <your_env_name> python=3.10 -y
     conda activate <your_env_name>
     pip install -r requirement.txt
     ```
-2. (Optional, for training) You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
 
-3. (Optional, for evaluation)Install Gemini API: Only if you want to use ```evaluation/gemini_eval.py```, you have to install Gemini API. Please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
-    
-    ```
-    pip install -q -U google-generativeai
-    ```
-
-    * Notes: Once you install ```google-generativeai```, if you want to go back to train, you have to conduct ```pip install protobuf==3.20``` to reverse the version of ```protobuf```
-
-# Download pre-trained weights
+## Download pre-trained weights
 
 * Download the weights for pre-trained model:
 
     ```
-    bash pretrained_download.sh
+    bash scripts/model_weights_download.sh
     ```
-
 
 ## Data Preparation
 
 * Conduct the following instruction
 
     ```
-    python3 data_download.py --dataset_types train val test
+    python3 data_download.py --dataset_types test
     ```
 
     * The data would be downloaded in ```data``` folder
 
-    * You could modify given parameters in ```--dataset_types``` to download which split of data you want to download. e.g. ```--dataset_types train``` for only download the training dataset
+# Prediction
 
-    * You could also choose to add ```--max_dataset_num``` to download partial of the dataset
+# (Optional) Training
 
-* **Watch Out!!**: Download the whole ```train``` dataset might requires 4-5 hours
+## Having ```Wandb``` Accounts 
+
+* You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
+
+## Download Pre-trained Weights
+
+* Make sure that you have conducted ```bash model_weights_download.sh```
+
+## Download Dataset 
+
+* Conduct the following instruction
+
+    ```
+    python3 data_download.py --dataset_types train
+    ```
+
+    * (Optional)You could modify given parameters in ```--dataset_types``` to download which split of data you want to download. e.g. ```--dataset_types train``` for only download the training dataset
+
+    * (Optional)You could also choose to add ```--max_dataset_num``` to download partial of the dataset
+
+    * **Watch Out!!**: Download the whole ```train``` dataset might requires 4-5 hours
+
+## Preprocess Training Data
+
+* Depend on what your strategies(If you combine **2.** **3.**, you need to download all the dataset!)
+
+    1. **Only fine-tuning**: Don't have to do anything to download the dataset
+
+    2. **Fine-tuning with Object Description**: Download 
+
+        1. Red Box Detection Results(for regional task)
+
+        2. Object Detection Results(for other tasks)
+        
+    
+    3. **Fine-tuning with Segmented Tokens**: Download
+
+        1. Red Box Detection Results(for regional task)
+
+        2. Dino Segmented Results(for other tasks)
+
+        3. YOLO Segmented Results(for other tasks)
+
+### 1. Red Box Detection(For Region Task)
+
+* Two options to download the dataset, conduct:
+
+    1. If pre-trained weight exists:```bash scripts/preprocess_data_download/regional_cropped_images.sh```
+
+    2. ```python modules/red_box_detection.py```
+
+### 2. Object Detection(For Other Tasks)
+
+* Two options to download the dataset, conduct:
+
+    1. If pre-trained weight exists: ```bash scripts/preprocess_data_download/detection_objects.sh```
+
+    2. ```python modules/detect_objects.py```
+
+### 3. Segmented Images
+
+* 
 
 # Execution 
 
-## Training
+## ()Training
+
+
 
 * Conduct the following scripts 
 
@@ -118,17 +171,18 @@
 
 |Strategy|Segmentation|Depth Map|RAG|Training Epochs|temperature|top_p|num_beams|Blue_3|General|Regional|Suggestion|LLM_Judge|Total Score|
 |-----|-----|-------|----|----|------|---|---|---|---|---|---|---|---|
-|Finetune LoRA only                |❌        |❌|❌|3|0.2|None|1|0.346|4.833|4.873|4.897|4.868|3.963|
-|Finetune LoRA only                |❌        |❌|❌|5|0.2|None|1|0.339|5.693|4.843|4.450|4.996|4.064|
-|Finetune LoRA only                |❌        |❌|❌|5|0  |0.9 |3|0.293|4.843|4.637|4.847|4.776|3.879|
-|Finetune LoRA only                |❌        |❌|❌|6|0.2|None|1|0.337|4.753|4.660|4.917|4.777|3.889|
-|Finetune LoRA only                |❌        |❌|✅|6|0.2|None|1|0.645|3.043|3.907|4.390|3.780|3.153|
-|Finetune LoRA only("As a car...") |❌        |❌|❌|6|0.2|None|1|0.294|5.763|4.893|4.487|5.048|4.097|
-|Add Seg. Token                    |✅(Token) |❌|❌|3|0.2|None|1|0.438|4.920|4.873|4.577|4.790|3.92|
-|Add Seg. Token                    |✅(Token) |❌|❌|3|0.2|None|1|0.326|5.453|5.103|4.497|5.018|4.079|
-|Add Seg. Prompt                   |✅(Prompt)|❌|❌|3|0.2|None|1|0.356|5.533|5.123|4.403|5.020|4.087|
-|Add Seg. Prompt                   |✅(Prompt)|❌|❌|3|0  |0.9 |3|0.333|5.610|4.890|4.547|5.046|4.103|
-|Add Seg. Prompt, Depth(old)       |✅(Prompt)|✅|❌|2|0.2|None|1|0.414|4.447|4.820|4.693|4.653|3.806|
+|Finetune LoRA only                        |❌        |❌|❌|3|0.2|None|1|0.346|4.833|4.873|4.897|4.868|3.963|
+|Finetune LoRA only                        |❌        |❌|❌|5|0.2|None|1|0.339|5.693|4.843|4.450|4.996|4.064|
+|Finetune LoRA only                        |❌        |❌|❌|5|0  |0.9 |3|0.293|4.843|4.637|4.847|4.776|3.879|
+|Finetune LoRA only                        |❌        |❌|❌|6|0.2|None|1|0.337|4.753|4.660|4.917|4.777|3.889|
+|Finetune LoRA only                        |❌        |❌|✅|6|0.2|None|1|0.645|3.043|3.907|4.390|3.780|3.153|
+|Finetune LoRA only("As a car...")         |❌        |❌|❌|6|0.2|None|1|0.294|5.763|4.893|4.487|5.048|4.097|
+|Add Seg. Token                            |✅(Token) |❌|❌|3|0.2|None|1|0.438|4.920|4.873|4.577|4.790|3.92|
+|Add Seg. Token                            |✅(Token) |❌|❌|5|0.2|None|1|0.326|5.453|5.103|4.497|5.018|4.079|
+|Add Seg. Prompt(old)                      |✅(Prompt)|❌|❌|3|0.2|None|1|0.356|5.533|5.123|4.403|5.020|4.087|
+|Add Seg. Prompt(old)                      |✅(Prompt)|❌|❌|3|0  |0.9 |3|0.333|5.610|4.890|4.547|5.046|4.103|
+|Add Seg. Prompt, Depth(old)               |✅(Prompt)|✅|❌|2|0.2|None|1|0.414|4.447|4.820|4.693|4.653|3.806|
+|Add Seg. Prompt, Depth(new)("As a car...")|✅(Prompt)|✅|❌|2|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
 
 # Supplement
 
@@ -142,3 +196,13 @@
 
 ## Supplement: Segmentation 
 
+
+
+
+3. (Optional, for evaluation)Install Gemini API: Only if you want to use ```evaluation/gemini_eval.py```, you have to install Gemini API. Please refer to the following command. For more details, please refer to [Gemini API](https://ai.google.dev/gemini-api/docs/quickstart?hl=zh-tw&_gl=1*ciqklc*_up*MQ..&gclid=Cj0KCQiAgJa6BhCOARIsAMiL7V8rppSkxxeqt-eVsCczUZ8Iz2mXXiTi1EkuP7K2xalpBYOk9HLgbv0aAqAIEALw_wcB&lang=python).
+    
+    ```
+    pip install -q -U google-generativeai
+    ```
+
+    * Notes: Once you install ```google-generativeai```, if you want to go back to train, you have to conduct ```pip install protobuf==3.20``` to reverse the version of ```protobuf```
