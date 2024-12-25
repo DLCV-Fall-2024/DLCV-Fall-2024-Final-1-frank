@@ -1,21 +1,3 @@
-# Results
-
-|Strategy|Segmentation|Depth Map|RAG|Training Epochs|temperature|top_p|num_beams|Blue_3|General|Regional|Suggestion|LLM_Judge|Total Score|
-|-----|-----|-------|----|----|------|---|---|---|---|---|---|---|---|
-|Finetune LoRA only                                              |❌        |❌|❌|3|0.2|None|1|0.346|4.833|4.873|4.897|4.868|3.963|
-|Finetune LoRA only                                              |❌        |❌|❌|5|0.2|None|1|0.339|5.693|4.843|4.450|4.996|4.064|
-|Finetune LoRA only                                              |❌        |❌|❌|5|0  |0.9 |3|0.293|4.843|4.637|4.847|4.776|3.879|
-|Finetune LoRA only                                              |❌        |❌|❌|6|0.2|None|1|0.337|4.753|4.660|4.917|4.777|3.889|
-|Finetune LoRA only                                              |❌        |❌|✅|6|0.2|None|1|0.645|3.043|3.907|4.390|3.780|3.153|
-|Finetune LoRA only("As a car...")                               |❌        |❌|❌|6|0.2|None|1|0.294|5.763|4.893|4.487|5.048|4.097|
-|Add Seg. Token                                                  |✅(Token) |❌|❌|3|0.2|None|1|0.438|4.920|4.873|4.577|4.790|3.92|
-|Add Seg. Token                                                  |✅(Token) |❌|❌|5|0.2|None|1|0.326|5.453|5.103|4.497|5.018|4.079|
-|Add Seg. Prompt(old)                                            |✅(Prompt)|❌|❌|3|0.2|None|1|0.356|5.533|5.123|4.403|5.020|4.087|
-|Add Seg. Prompt(old)                                            |✅(Prompt)|❌|❌|3|0  |0.9 |3|0.333|5.610|4.890|4.547|5.046|4.103|
-|Add Seg. Prompt, Depth(old)                                     |✅(Prompt)|✅|❌|2|0.2|None|1|0.414|4.447|4.820|4.693|4.653|3.806|
-|Add Seg. Prompt, Depth(new)("As a car...")                      |✅(Prompt)|✅|❌|3|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
-|Add Seg. Prompt, Depth(new)("As a car...") & Suggestion(Another)|✅(Prompt)|✅|❌|3|0.2|None|1|0.351|5.410|5.247|4.630|5.096|4.147|
-
 # Notes
 
 * All executions are performed in the **root** directory.
@@ -260,3 +242,20 @@
     * The results from LLaMA-3 may differ from Gemini's evaluation. Please use LLaMA-3's results **only as a reference**.
     * The supplementary materials of using Gemini API and huggingface tokens can be found in [slides](https://docs.google.com/presentation/d/1eeXx_dL0OgkDn9_lhXnimTHrE6OYvAiiVOBwo2CTVOQ/edit#slide=id.g31b10de1f8f_7_155).
 
+# Results
+
+|Strategy|Segmentation|Depth Map|RAG|Training Epochs|temperature|top_p|num_beams|Blue_3|General|Regional|Suggestion|LLM_Judge|Total Score|
+|-----|-----|-------|----|----|------|---|---|---|---|---|---|---|---|
+|Finetune LoRA only                                              |❌        |❌|❌|3|0.2|None|1|0.346|4.833|4.873|4.897|4.868|3.963|
+|Finetune LoRA only                                              |❌        |❌|❌|5|0.2|None|1|0.339|5.693|4.843|4.450|4.996|4.064|
+|Finetune LoRA only                                              |❌        |❌|❌|5|0  |0.9 |3|0.293|4.843|4.637|4.847|4.776|3.879|
+|Finetune LoRA only                                              |❌        |❌|❌|6|0.2|None|1|0.337|4.753|4.660|4.917|4.777|3.889|
+|Finetune LoRA only                                              |❌        |❌|✅|6|0.2|None|1|0.645|3.043|3.907|4.390|3.780|3.153|
+|Finetune LoRA only("As a car...")                               |❌        |❌|❌|6|0.2|None|1|0.294|5.763|4.893|4.487|5.048|4.097|
+|Add Seg. Token                                                  |✅(Token) |❌|❌|3|0.2|None|1|0.438|4.920|4.873|4.577|4.790|3.92|
+|Add Seg. Token                                                  |✅(Token) |❌|❌|5|0.2|None|1|0.326|5.453|5.103|4.497|5.018|4.079|
+|Add Seg. Prompt(old)                                            |✅(Prompt)|❌|❌|3|0.2|None|1|0.356|5.533|5.123|4.403|5.020|4.087|
+|Add Seg. Prompt(old)                                            |✅(Prompt)|❌|❌|3|0  |0.9 |3|0.333|5.610|4.890|4.547|5.046|4.103|
+|Add Seg. Prompt, Depth(old)                                     |✅(Prompt)|✅|❌|2|0.2|None|1|0.414|4.447|4.820|4.693|4.653|3.806|
+|Add Seg. Prompt, Depth(new)("As a car...")                      |✅(Prompt)|✅|❌|3|0.2|None|1|0.357|5.230|5.210|4.357|4.932|4.017|
+|Add Seg. Prompt, Depth(new)("As a car...") & Suggestion(Another)|✅(Prompt)|✅|❌|3|0.2|None|1|0.351|5.410|5.247|4.630|5.096|4.147|
