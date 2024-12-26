@@ -4,7 +4,7 @@
 
 # Initialization
 
-## Environment Setup
+## A. Environment Setup
 
 1. Create a new environment (python version needs to `>=3.10`), and download the required packages
     
@@ -14,7 +14,7 @@
     pip install -r requirement.txt
     ```
 
-## Download pre-trained weights
+## B. Download pre-trained weights
 
 * Download the weights for pre-trained model:
 
@@ -22,7 +22,7 @@
     bash scripts/model_weights_download.sh
     ```
 
-## Data Preparation
+## C. Data Preparation
 
 * Conduct the following instruction
 
@@ -36,19 +36,32 @@
 
 * There are some strategies you could choose:
 
-    1. Add Object Detection Prompts 
+    1. **(Best Choice) Strategy 1: Add Object Detection Prompts(Use only fine-tuning strategy in suggestion Task)**
 
-    2. Add Object Detection Prompts(Use only fine-tuning strategy in suggestion Task)
+    2. Strategy 2: Add Object Detection Prompts 
 
-    3. Only fine-tuning
+    3. Strategy 3: Only fine-tuning
 
-    4. Concat Object Segment Image's Tokens
+    4. Strategy 4: Concat Object Segment Image's Tokens
 
 * **Notes**: While conducting the prediction, you would need to be ask to **Enter your token**. Go to **HuggingFace** and apply a api token.
 
-## Add Object Detection Prompts 
+## (Best Choice) Strategy 1
 
-1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` not exists)Download the checkpoints
+1. If ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` or ```checkpoints/llava-v1.5-7b-lora_5``` not exists, download the checkpoints by conduct the following command
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_split_task/download.sh
+    ```
+
+2. Conduct the prediction
+
+    ```
+    bash scripts/strategy/llava-v1.5-7b-lora_split_task/predict.sh
+
+## Strategy 2
+
+1. If ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` not exists, download the checkpoints by conduct the following command
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/download.sh
@@ -60,22 +73,9 @@
     bash scripts/strategy/llava-v1.5-7b-lora_add_obj_info_prompt_3/predict.sh
     ```
 
-## Add Object Detection Prompts(Suggestion use fine-tuning strategy)
+## Strategy 3
 
-1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_add_obj_info_prompt_3/``` or ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
-
-    ```
-    bash scripts/strategy/llava-v1.5-7b-lora_split_task/download.sh
-    ```
-
-2. Conduct the prediction
-
-    ```
-    bash scripts/strategy/llava-v1.5-7b-lora_split_task/predict.sh
-
-## (Optional) Only fine-tuning
-
-1. (Optional, if ```checkpoints/llava-v1.5-7b-lora_5``` not exists)Download the checkpoints
+1. If ```checkpoints/llava-v1.5-7b-lora_5``` not exists, download the checkpoints by conduct the following command
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_5/download.sh
@@ -87,9 +87,9 @@
     bash scripts/strategy/llava-v1.5-7b-lora_5/predict.sh
     ```
 
-## (Optional) Concat Object Segment Image's Tokens
+## Strategy 4
 
-1. (Optional, if ```checkpoints/lava-v1.5-7b-lora_add_seg_img_token_5``` not exists)Download the checkpoints
+1. If ```checkpoints/lava-v1.5-7b-lora_add_seg_img_token_5``` not exists, download the checkpoints by conduct the following command
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/download.sh
@@ -101,17 +101,17 @@
     bash scripts/strategy/llava-v1.5-7b-lora_add_seg_img_token_5/predict.sh
     ```
 
-# (Optional) Training
+# Training
 
-## Having ```Wandb``` Accounts 
+## A. Having ```Wandb``` Accounts 
 
 * You have to create a ```wandb``` account to trace the training result [here](https://wandb.ai/)
 
-## Download Pre-trained Weights
+## B. Download Pre-trained Weights
 
 * Make sure that you have conducted ```bash model_weights_download.sh```
 
-## Download Dataset 
+## C. Download Dataset 
 
 * Conduct the following instruction
 
@@ -125,7 +125,7 @@
 
     * **Watch Out!!**: Download the whole ```train``` dataset might requires 4-5 hours
 
-## Preprocess Training Data
+## D. Prepare Preprocessing Training Data
 
 * Depend on what your strategies(If you combine **2.** **3.**, you need to download all the dataset!)
 
@@ -170,9 +170,17 @@
 
     2. ```python modules/segment_objects.py```
 
-## Execution 
+## E. Conduct Training
 
-### Only fine-tuning
+* There are some strategies you could choose to train:
+
+    1. Strategy (1): Only fine-tuning
+
+    2. Strategy (2): Add Object Detection Prompts 
+
+    3. Strategy (3): Concat Object Segment Image's Tokens
+
+### Strategy (1)
 
 * Conduct 
 
@@ -180,7 +188,7 @@
 
     * ```$1```: GPU Number
 
-### Add Object Detection Prompts 
+### Strategy (2)
 
 * Conduct 
 
@@ -188,7 +196,7 @@
 
     * ```$1```: GPU Number
 
-### Concat Object Segment Image's Tokens
+### Strategy (3)
 
 * Conduct 
 
