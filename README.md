@@ -32,7 +32,7 @@
 
     * The data would be downloaded in ```data``` folder
 
-# D. Conduct Prediction
+# Prediction
 
 * There are some strategies you could choose:
 
