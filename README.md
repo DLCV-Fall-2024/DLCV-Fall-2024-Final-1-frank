@@ -14,6 +14,8 @@
     pip install -r requirement.txt
     ```
 
+    * If you face some error about installing ```flash-attn==2.5.8```, please comment the ```flash-attn==2.5.8``` first and conduct ```pip install -r requirements.txt``` again. Then, install ```flash-attn==2.5.8``` individually.
+
 ## B. Download pre-trained weights
 
 * Download the weights for pre-trained model:
