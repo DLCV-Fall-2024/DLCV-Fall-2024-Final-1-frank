@@ -73,10 +73,10 @@ def eval_model(args):
         image = Image.open(os.path.join(args.image_folder, image_file)).convert('RGB')
         
         qs = line["conversations"][0]["value"].replace("<image>", "")
-        qs = "\n\nYou are an experienced car driver, \
-            enable to point out all details need to be focused while driving. \
-                An image from the driver's seat of a ego car is given, \
-                    corresponded to a question. You need to answer the question with your analysis from image.\n" + f" Question\n\"{qs} \n"
+        if "suggestion" in idx and args.suggestion_model_path:
+            pass
+        else:
+            qs = "\n\nYou are an experienced car driver, enable to point out all details need to be focused while driving. An image from the driver's seat of a ego car is given, corresponded to a question. You need to answer the question with your analysis from image.\n" + f" Question\n\"{qs} \n"
         
         seg_image = None 
         
@@ -142,12 +142,11 @@ def eval_model(args):
         # if args.add_detection_token:
         #     qs += "The feature of the labels and bounding boxes are in <detection>."
         
-        def generate(_tokenizer, _model, _image_processor, qs=qs, args=args, seg_image=seg_image):
+        def generate(_tokenizer, _model, _image_processor, qs, args=args, seg_image=seg_image):
             if _model.config.mm_use_im_start_end:
                 qs = DEFAULT_IM_START_TOKEN + DEFAULT_IMAGE_TOKEN + DEFAULT_IM_END_TOKEN + '\n' + qs
             else:
                 qs = DEFAULT_IMAGE_TOKEN + '\n' + qs
-            qs += "\"\n Your answer:"
             
             conv = conv_templates[args.conv_mode].copy()
             conv.append_message(conv.roles[0], qs)
@@ -181,9 +180,10 @@ def eval_model(args):
             return outputs
         
         if "suggestion" in idx and args.suggestion_model_path:
-            outputs = generate(_tokenizer=suggestion_tokenizer, _model=suggestion_model, _image_processor=suggestion_image_processor)
+            outputs = generate(_tokenizer=suggestion_tokenizer, _model=suggestion_model, _image_processor=suggestion_image_processor, qs=qs)
         else:
-            outputs = generate(_tokenizer=tokenizer, _model=model, _image_processor=image_processor)
+            qs += "\"\n Your answer:"
+            outputs = generate(_tokenizer=tokenizer, _model=model, _image_processor=image_processor, qs=qs)
         
         results[idx] = outputs
         # print(idx)

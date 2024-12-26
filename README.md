@@ -60,6 +60,7 @@
 
     ```
     bash scripts/strategy/llava-v1.5-7b-lora_split_task/predict.sh
+    ```
 
 ## Strategy 2
 
